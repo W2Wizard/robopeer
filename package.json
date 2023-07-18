@@ -1,9 +1,10 @@
 {
-  "name": "auth",
+  "name": "grader",
   "author": "W2Wizard",
-  "description": "A authentication server for handling user authentication",
+  "description": "A code grading server",
   "module": "./src/main.ts",
   "devDependencies": {
+    "@types/dockerode": "^3.3.19",
     "@types/jsonwebtoken": "^9.0.2",
     "bun-types": "^0.6.14"
   },
@@ -12,6 +13,7 @@
   },
   "type": "module",
   "dependencies": {
+    "dockerode": "^3.3.5",
     "jsonwebtoken": "^9.0.1"
   }
 }
