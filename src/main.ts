@@ -32,9 +32,35 @@ const docker = new Docker();
 if (!(await docker.connect()))
 	throw new Error("Failed to connect to docker daemon.");
 
+// List containers
 docker.listContainers(async (response) => {
-	console.log(await response.text());
+	// TODO: Temporary hack, very ugly.
+
+	// It's because the response isnt finished yet and by the time it is, there
+	// process has already exited. So we wait a bit and then print the response.
+	// Fix this with awaits or something idk lol.
+	setTimeout(async () => {
+		console.log(await response.json());
+	}, 75);
 });
+
+
+// Create a container
+// const container = {
+// 	Image: "node:latest",
+// 	Name: "test",
+// 	Cmd: ["node", "-e", "console.log('Hello World!');"],
+// }
+
+// docker.createContainer(container, async (response) => {
+// 	// const data = await response.json() as any;
+// 	console.log(await response.text());
+
+// 	// docker.startContainer(data.Id, async (response) => {
+// 	// 	console.log(await response.text());
+// 	// });
+// });
+
 
 //export const server = Bun.serve({
 //	port: 8080,
