@@ -3,10 +3,7 @@
 // See README and LICENSE files for details.
 //=============================================================================
 
-import jwt from "jsonwebtoken";
-import Database from "bun:sqlite";
 import * as grade from "./routes/grade";
-import { FileSystemRouter } from "bun";
 import Router, { Route, routes } from "./router";
 
 // Routes
@@ -19,15 +16,9 @@ if (import.meta.main !== (import.meta.path === Bun.main)) {
 // Routes
 //=============================================================================
 
-routes["/dock"] = new Route(["GET"], async () => {
-	return new Response("Hello World!");
-});
-
 routes["/api/grade"] = new Route(["POST", "GET"], async (request, url) => {
 	switch (request.method) {
 		case "POST": return grade.POST(request, url);
-		case "GET": return grade.GET(request, url);
-		// NOTE(W2): Route class handles this already.
 		default: return new Response();
 	}
 });
@@ -35,7 +26,6 @@ routes["/api/grade"] = new Route(["POST", "GET"], async (request, url) => {
 // Entry point for the application.
 //=============================================================================
 
-export const db = new Database("db.sqlite", { readwrite: true, create: false });
 export const server = Bun.serve({
 	port: 8080,
 	fetch(req) { return Router(req, "pages"); }
