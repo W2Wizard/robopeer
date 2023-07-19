@@ -1,2 +1,2 @@
-# auth
-Authentication server, yeah that's it.
+# grader
+Send code. Wait a bit. Profit!

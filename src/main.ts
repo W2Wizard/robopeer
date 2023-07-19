@@ -5,6 +5,8 @@
 
 import * as grade from "./routes/grade";
 import Router, { Route, routes } from "./router";
+import Docker from "./docker/docker";
+import { Socket } from "bun";
 
 // Routes
 //=============================================================================
@@ -26,9 +28,17 @@ routes["/api/grade"] = new Route(["POST", "GET"], async (request, url) => {
 // Entry point for the application.
 //=============================================================================
 
-export const server = Bun.serve({
-	port: 8080,
-	fetch(req) { return Router(req, "pages"); }
+const docker = new Docker();
+if (!(await docker.connect()))
+	throw new Error("Failed to connect to docker daemon.");
+
+docker.listContainers(async (response) => {
+	console.log(await response.text());
 });
 
-console.log(`Server running at http://localhost:${server.port}/`);
+//export const server = Bun.serve({
+//	port: 8080,
+//	fetch(req) { return Router(req, "pages"); }
+//});
+
+//console.log(`Server running at http://localhost:${server.port}/`);
