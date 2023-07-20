@@ -9,6 +9,38 @@
 /** The HTTP protocol version */
 export type HTTPProtocol = "1.0" | "1.1";
 
+/** A simplified, raw HTTP response class. */
+export class RawRequest {
+	public url: string;
+	public method?: string;
+	public headers?: Headers;
+	public protocol: HTTPProtocol;
+	public body?: string;
+
+	constructor(url: string, options: RequestInit) {
+		this.url = url;
+		this.protocol = "1.1";
+		this.method = options.method!;
+		this.headers = new Headers(options.headers);
+		if (options.body) {
+			this.body = options.body.toString();
+		}
+	}
+
+	public toString() {
+		const { url, method, headers, body, protocol } = this;
+		let request = `${method} ${url} HTTP/${protocol}\r\n`;
+
+		if (headers) {
+			for (const [key, value] of headers.entries()) {
+				request += `${key}: ${value}\r\n`;
+			}
+		}
+		if (body) request += `\r\n${body}`;
+		return request;
+	}
+}
+
 //=============================================================================
 
 /**
@@ -40,9 +72,11 @@ function parseHTTPBody(headers: Headers, body: string): string {
 		case "chunked": {
 			const chunks = body.split("\r\n");
 			const chunkData = chunks.filter((_, i) => i % 2 === 1);
-			const chunkSizes = chunks.filter((_, i) => i % 2 === 0).map((chunk) => {
-				return parseInt(chunk, 16);
-			});
+			const chunkSizes = chunks
+				.filter((_, i) => i % 2 === 0)
+				.map((chunk) => {
+					return parseInt(chunk, 16);
+				});
 
 			// NOTE(W2): -1 because the last chunk is always 0
 			// TODO: I don't handle trailers, so no idea if parsing will work.
@@ -78,8 +112,7 @@ export function parseHTTPRaw(buffer: Buffer, protocol: HTTPProtocol): Response {
 	const [headerRaw, bodyRaw] = data.split("\r\n\r\n");
 
 	const statusLine = headerRaw.match(new RegExp(`HTTP\/1.1 (\\d+) (.+)`))!;
-	if (!statusLine)
-		throw new Error("Invalid status line received.");
+	if (!statusLine) throw new Error("Invalid status line received.");
 
 	const [_, status, statusText] = statusLine;
 	const headers = parseHTTPHeader(headerRaw);
@@ -91,21 +124,4 @@ export function parseHTTPRaw(buffer: Buffer, protocol: HTTPProtocol): Response {
 		statusText: statusText,
 		headers: headers,
 	});
-}
-
-/**
- * Get a string representation of a request.
- * @param request The request to get the string representation of.
- * @returns The string representation of the request.
- */
-export function requestToString(request: Request, protocol: HTTPProtocol = "1.1") {
-	const { method, url, headers } = request;
-
-	let requestString = `${method} ${url} HTTP/${protocol}\r\n`;
-	headers.forEach((value, key) => {
-		requestString += `${key}: ${value}\r\n`;
-	});
-
-	requestString += '\r\n';
-	return requestString;
 }

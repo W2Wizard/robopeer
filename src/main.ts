@@ -29,20 +29,24 @@ routes["/api/grade"] = new Route(["POST", "GET"], async (request, url) => {
 
 const docker = new Docker();
 if (!(await docker.connect()))
-	throw new Error("Failed to connect to docker daemon.");
+	process.exit(1);
 
 // List containers
-docker.listContainers(async (response) => {
-	console.log(await response.json());
-	docker.disconnect(); // Optional, otherwise process keeps running
-});
+//docker.listContainers(async (response) => {
+//	console.log(await response.json());
+//	docker.disconnect(); // Optional, otherwise process keeps running
+//});
 
 // Create a container
-// const container = {
-// 	Image: "node:latest",
-// 	Name: "test",
-// 	Cmd: ["node", "-e", "console.log('Hello World!');"],
-// }
+const container = {
+	Image: "node:latest",
+	Name: "test",
+	Cmd: ["node", "-e", "console.log('Hello World!');"],
+}
+
+docker.createContainer(container, async (response) => {
+	console.log(await response.json());
+});
 
 // docker.createContainer(container, async (response) => {
 // 	// const data = await response.json() as any;

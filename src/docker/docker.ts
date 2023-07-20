@@ -4,7 +4,7 @@
 //=============================================================================
 
 import { Socket } from "bun";
-import { HTTPProtocol, parseHTTPRaw, requestToString } from "../http";
+import { HTTPProtocol, RawRequest, parseHTTPRaw } from "../http";
 
 //=============================================================================
 
@@ -59,7 +59,9 @@ export default class Docker {
 				unix: '/var/run/docker.sock',
 				socket: {
 					//end(socket) { listener(tempBuff); }, // TODO: HTTP 1.0 support
-					data(socket, data) { appendOrResolve(data); },
+					data(socket, data) { appendOrResolve(data); console.log(data.toString()); },
+					error(socket, error) { throw error; },
+					close(socket) { console.log("Socket closed."); },
 					connectError(socket, error) { throw error; },
 				}
 			});
@@ -71,11 +73,11 @@ export default class Docker {
 		}
 	}
 
-	private send(request: Request | BufferSource | string) {
+	private send(request: RawRequest | BufferSource | string) {
 		if (!this.socket) return 0;
-		if (request instanceof Request) {
-			return this.socket.write(requestToString(request, this.protocol));
-		}
+
+		if (request instanceof RawRequest)
+			return this.socket.write(request.toString());
 		return this.socket.write(request);
 	}
 
@@ -97,7 +99,7 @@ export default class Docker {
 			throw new Error("Not connected to docker daemon.");
 
 		this.responseListener = cb;
-		this.send(new Request(`${this.endpoint}/containers/json`, {
+		this.send(new RawRequest(`${this.endpoint}/containers/json`, {
 			method: "GET",
 			headers: { "Host": "localhost" }
 		}));
@@ -115,7 +117,7 @@ export default class Docker {
 
 		this.responseListener = cb;
 		const payload = JSON.stringify(container);
-		const request = new Request(`${this.endpoint}/containers/create`, {
+		const request = new RawRequest(`${this.endpoint}/containers/create`, {
 			method: "POST",
 			headers: {
 				"Host": "localhost",
@@ -126,6 +128,7 @@ export default class Docker {
 		});
 
 		this.send(request);
+
 	}
 
 	/**
@@ -141,7 +144,7 @@ export default class Docker {
 			throw new Error("Not connected to docker daemon.");
 
 		this.responseListener = cb;
-		const request = new Request(`${this.endpoint}/containers/${id}/start`, {
+		const request = new RawRequest(`${this.endpoint}/containers/${id}/start`, {
 			method: "POST",
 			headers: { "Host": "localhost" }
 		});
@@ -162,7 +165,7 @@ export default class Docker {
 			throw new Error("Not connected to docker daemon.");
 
 		this.responseListener = cb;
-		const request = new Request(`${this.endpoint}/containers/${id}/stop`, {
+		const request = new RawRequest(`${this.endpoint}/containers/${id}/stop`, {
 			method: "POST",
 			headers: { "Host": "localhost" }
 		});
