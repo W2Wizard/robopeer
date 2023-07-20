@@ -4,14 +4,14 @@
 //=============================================================================
 
 import { Socket } from "bun";
-import { getRequestString } from "../utils";
+import { HTTPProtocol, parseHTTPRaw, requestToString } from "../http";
 
 //=============================================================================
 
 type Receive = (socket: Socket, data: Buffer) => void | Promise<void>;
 
 /** Function protopype used when a response is received. */
-export type ResponseCallback = (res: Response) => void;
+export type ResponseCallback = (res: Response) => void | Promise<void>;
 
 //=============================================================================
 
@@ -22,49 +22,44 @@ export type ResponseCallback = (res: Response) => void;
  * @see https://docs.docker.com/engine/api/v1.43/
  */
 export default class Docker {
+	public protocol: HTTPProtocol;
+	public endpoint: string = "http://localhost";
+
 	private socket?: Socket;
-	private endpoint: string = "http://localhost";
 	private responseListener: ResponseCallback = () => {
 		console.warn("No response listener set.");
 	};
 
-	constructor(version: string = "v1.43") {
+	constructor(version: string = "v1.43", protocol: HTTPProtocol = "1.1") {
+		this.protocol = protocol;
 		this.endpoint += `/${version}`;
 	}
 
 	/** Connect to the docker daemon. */
 	public async connect() {
-		// Hack to get around the fact that we can't use this in the connect
-		const listener = async (data: string) => {
-			const [header, body] = data.split("\r\n\r\n");
-			const statusLine = header.match(/HTTP\/1.0 (\d+) (.+)/)!;
-			if (!statusLine)
-				throw new Error("Invalid status line received.");
+		let tempBuff: Buffer = Buffer.alloc(0);
 
-			// Get the headers
-			const headers = new Headers();
-			const headerLines = header.split("\r\n");
-			for (let i = 1; i < headerLines.length; i++) {
-				const [key, value] = headerLines[i].split(": ");
-				headers.set(key, value);
+		// Hack: Because `this` is not refering to the class in the listener
+		const listener = async (data: Buffer) => {
+			await this.responseListener(parseHTTPRaw(data, this.protocol));
+		};
+
+		// Append the buffer until the zero chunk is received
+		const appendOrResolve = (buffer: Buffer) => {
+			tempBuff = Buffer.concat([tempBuff, buffer]);
+			if (buffer.toString().endsWith("0\r\n\r\n")) {
+				listener(tempBuff);
+				tempBuff = Buffer.alloc(0);
+				return;
 			}
-
-			// Construct the response
-			const [_, status, statusText] = statusLine;
-			this.responseListener(new Response(body, {
-				status: parseInt(status),
-				statusText: statusText,
-				headers: headers,
-			}));
 		};
 
 		try {
-			let buffer: Buffer = Buffer.alloc(0);
 			this.socket = await Bun.connect({
 				unix: '/var/run/docker.sock',
 				socket: {
-					data(socket, data) { buffer = Buffer.concat([buffer, data]); },
-					end(socket) { listener(buffer.toString()); },
+					//end(socket) { listener(tempBuff); }, // TODO: HTTP 1.0 support
+					data(socket, data) { appendOrResolve(data); },
 					connectError(socket, error) { throw error; },
 				}
 			});
@@ -78,8 +73,9 @@ export default class Docker {
 
 	private send(request: Request | BufferSource | string) {
 		if (!this.socket) return 0;
-		if (request instanceof Request)
-			return this.socket.write(getRequestString(request));
+		if (request instanceof Request) {
+			return this.socket.write(requestToString(request, this.protocol));
+		}
 		return this.socket.write(request);
 	}
 
@@ -87,6 +83,7 @@ export default class Docker {
 	public disconnect() {
 		if (!this.socket)
 			throw new Error("Not connected to docker daemon.");
+		// TODO: Flush the socket?
 		this.socket.end();
 	}
 

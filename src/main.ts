@@ -4,9 +4,8 @@
 //=============================================================================
 
 import * as grade from "./routes/grade";
-import Router, { Route, routes } from "./router";
+import { Route, routes } from "./router";
 import Docker from "./docker/docker";
-import { Socket } from "bun";
 
 // Routes
 //=============================================================================
@@ -34,16 +33,9 @@ if (!(await docker.connect()))
 
 // List containers
 docker.listContainers(async (response) => {
-	// TODO: Temporary hack, very ugly.
-
-	// It's because the response isnt finished yet and by the time it is, there
-	// process has already exited. So we wait a bit and then print the response.
-	// Fix this with awaits or something idk lol.
-	setTimeout(async () => {
-		console.log(await response.json());
-	}, 75);
+	console.log(await response.json());
+	docker.disconnect(); // Optional, otherwise process keeps running
 });
-
 
 // Create a container
 // const container = {
