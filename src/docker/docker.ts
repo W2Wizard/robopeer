@@ -8,8 +8,6 @@ import { RawRequest, ResponseParser } from "@/http";
 
 //=============================================================================
 
-type Receive = (socket: Socket, data: Buffer) => void | Promise<void>;
-
 /** Function protopype used when a response is received. */
 export type ResponseCallback = (res: Response) => void | Promise<void>;
 
@@ -25,9 +23,7 @@ export default class Docker {
 	public endpoint: string;
 
 	private socket?: Socket;
-	private responseListener: ResponseCallback = () => {
-		console.warn("No response listener set.");
-	};
+	private callbacks: ResponseCallback[] = [];
 
 	constructor(version: string = "v1.43") {
 		this.endpoint = `/${version}`;
@@ -35,9 +31,10 @@ export default class Docker {
 
 	//= Private =//
 
-	public send(request: RawRequest | BufferSource | string) {
+	public send(request: RawRequest | BufferSource | string, cb?: ResponseCallback) {
 		if (!this.socket) return 0;
 
+		if (cb) this.callbacks.push(cb);
 		if (request instanceof RawRequest)
 			return this.socket.write(request.toString());
 		return this.socket.write(request);
@@ -52,7 +49,8 @@ export default class Docker {
 			parser.append(buffer);
 
 			if (parser.isComplete) {
-				await this.responseListener(parser.toResponse());
+				const cb = this.callbacks.shift();
+				if (cb) await cb(parser.toResponse());
 				parser.reset();
 				return;
 			}
@@ -87,11 +85,10 @@ export default class Docker {
 	 * @returns A list of containers currently running as JSON.
 	 * @see https://docs.docker.com/engine/api/v1.43/#operation/ContainerList
 	 */
-	public listContainers(cb: ResponseCallback) {
+	public listContainers(cb?: ResponseCallback) {
 		if (!this.socket)
 			throw new Error("Not connected to docker daemon.");
 
-		this.responseListener = cb;
 		const request = new RawRequest(`${this.endpoint}/containers/json`, {
 			method: "GET",
 			headers: {
@@ -99,7 +96,7 @@ export default class Docker {
 			}
 		});
 
-		this.send(request);
+		this.send(request, cb);
 	}
 
 	/**
@@ -108,11 +105,10 @@ export default class Docker {
 	 *
 	 * @see https://docs.docker.com/engine/api/v1.43/#operation/ContainerCreate
 	 */
-	public createContainer(container: any, cb: ResponseCallback) {
+	public createContainer(container: any, cb?: ResponseCallback) {
 		if (!this.socket)
 			throw new Error("Not connected to docker daemon.");
 
-		this.responseListener = cb;
 		const payload = JSON.stringify(container);
 		const request = new RawRequest(`${this.endpoint}/containers/create`, {
 			method: "POST",
@@ -124,7 +120,7 @@ export default class Docker {
 			body: payload,
 		});
 
-		this.send(request);
+		this.send(request, cb);
 	}
 
 	/**
@@ -135,17 +131,16 @@ export default class Docker {
 	 *
 	 * @see https://docs.docker.com/engine/api/v1.43/#operation/ContainerStart
 	 */
-	public startContainer(id: string, cb: ResponseCallback) {
+	public startContainer(id: string, cb?: ResponseCallback) {
 		if (!this.socket)
 			throw new Error("Not connected to docker daemon.");
 
-		this.responseListener = cb;
 		const request = new RawRequest(`${this.endpoint}/containers/${id}/start`, {
 			method: "POST",
 			headers: { "Host": "localhost" }
 		});
 
-		this.send(request);
+		this.send(request, cb);
 	}
 
 	/**
@@ -156,16 +151,15 @@ export default class Docker {
 	 *
 	 * @see https://docs.docker.com/engine/api/v1.43/#operation/ContainerStop
 	 */
-	public stopContainer(id: string, cb: ResponseCallback) {
+	public stopContainer(id: string, cb?: ResponseCallback) {
 		if (!this.socket)
 			throw new Error("Not connected to docker daemon.");
 
-		this.responseListener = cb;
 		const request = new RawRequest(`${this.endpoint}/containers/${id}/stop`, {
 			method: "POST",
 			headers: { "Host": "localhost" }
 		});
 
-		this.send(request);
+		this.send(request, cb);
 	}
 }

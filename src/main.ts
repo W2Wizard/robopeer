@@ -47,15 +47,13 @@ const container = {
 	Cmd: ["tail", "-f", "/dev/null"],
 }
 
-for (let i = 0; i < 5; i++) {
-	docker.createContainer(container, async (response) => {
-		const data = await response.json() as any;
+docker.createContainer(container, async (response) => {
+	const data = await response.json() as any;
 
-		docker.startContainer(data.Id, async (response) => {
-			console.log("Container:", data.Id, "started.");
+	docker.startContainer(data.Id, async (response) => {
+		console.log("Container:", data.Id, "started.");
+
+		docker.listContainers(async (response) => {
 		});
 	});
-
-	await sleep(1000); // NOTE: This is a hack because of bad code
-}
-
+});
