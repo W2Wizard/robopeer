@@ -4,7 +4,7 @@
 //=============================================================================
 
 import { Socket } from "bun";
-import { HTTPProtocol, RawRequest, parseHTTPRaw } from "../http";
+import { RawRequest, ResponseParser } from "@/http";
 
 //=============================================================================
 
@@ -22,34 +22,38 @@ export type ResponseCallback = (res: Response) => void | Promise<void>;
  * @see https://docs.docker.com/engine/api/v1.43/
  */
 export default class Docker {
-	public protocol: HTTPProtocol;
-	public endpoint: string = "http://localhost";
+	public endpoint: string;
 
 	private socket?: Socket;
 	private responseListener: ResponseCallback = () => {
 		console.warn("No response listener set.");
 	};
 
-	constructor(version: string = "v1.43", protocol: HTTPProtocol = "1.1") {
-		this.protocol = protocol;
-		this.endpoint += `/${version}`;
+	constructor(version: string = "v1.43") {
+		this.endpoint = `/${version}`;
 	}
+
+	//= Private =//
+
+	public send(request: RawRequest | BufferSource | string) {
+		if (!this.socket) return 0;
+
+		if (request instanceof RawRequest)
+			return this.socket.write(request.toString());
+		return this.socket.write(request);
+	}
+
+	//= Public =//
 
 	/** Connect to the docker daemon. */
 	public async connect() {
-		let tempBuff: Buffer = Buffer.alloc(0);
+		const parser = new ResponseParser();
+		const appendOrResolve = async (buffer: Buffer) => {
+			parser.append(buffer);
 
-		// Hack: Because `this` is not refering to the class in the listener
-		const listener = async (data: Buffer) => {
-			await this.responseListener(parseHTTPRaw(data, this.protocol));
-		};
-
-		// Append the buffer until the zero chunk is received
-		const appendOrResolve = (buffer: Buffer) => {
-			tempBuff = Buffer.concat([tempBuff, buffer]);
-			if (buffer.toString().endsWith("0\r\n\r\n")) {
-				listener(tempBuff);
-				tempBuff = Buffer.alloc(0);
+			if (parser.isComplete) {
+				await this.responseListener(parser.toResponse());
+				parser.reset();
 				return;
 			}
 		};
@@ -58,34 +62,23 @@ export default class Docker {
 			this.socket = await Bun.connect({
 				unix: '/var/run/docker.sock',
 				socket: {
-					//end(socket) { listener(tempBuff); }, // TODO: HTTP 1.0 support
-					data(socket, data) { appendOrResolve(data); console.log(data.toString()); },
-					error(socket, error) { throw error; },
-					close(socket) { console.log("Socket closed."); },
-					connectError(socket, error) { throw error; },
+					error(_, error) { throw error; },
+					connectError(_, error) { throw error; },
+					data(_, data) { appendOrResolve(data) },
 				}
 			});
 
 			return true;
 		} catch (error) {
-			console.error(error);
 			return false;
 		}
-	}
-
-	private send(request: RawRequest | BufferSource | string) {
-		if (!this.socket) return 0;
-
-		if (request instanceof RawRequest)
-			return this.socket.write(request.toString());
-		return this.socket.write(request);
 	}
 
 	/** Disconnect from the docker daemon. */
 	public disconnect() {
 		if (!this.socket)
 			throw new Error("Not connected to docker daemon.");
-		// TODO: Flush the socket?
+		this.socket.flush();
 		this.socket.end();
 	}
 
@@ -99,10 +92,14 @@ export default class Docker {
 			throw new Error("Not connected to docker daemon.");
 
 		this.responseListener = cb;
-		this.send(new RawRequest(`${this.endpoint}/containers/json`, {
+		const request = new RawRequest(`${this.endpoint}/containers/json`, {
 			method: "GET",
-			headers: { "Host": "localhost" }
-		}));
+			headers: {
+				"Host": "localhost",
+			}
+		});
+
+		this.send(request);
 	}
 
 	/**
@@ -128,7 +125,6 @@ export default class Docker {
 		});
 
 		this.send(request);
-
 	}
 
 	/**

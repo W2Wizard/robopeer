@@ -4,10 +4,10 @@
 //=============================================================================
 
 import * as grade from "./routes/grade";
-import { Route, routes } from "./router";
+import Router, { Route, routes } from "./router";
 import Docker from "./docker/docker";
+import { sleep } from "bun";
 
-// Routes
 //=============================================================================
 
 if (import.meta.main !== (import.meta.path === Bun.main)) {
@@ -28,39 +28,34 @@ routes["/api/grade"] = new Route(["POST", "GET"], async (request, url) => {
 //=============================================================================
 
 const docker = new Docker();
-if (!(await docker.connect()))
+if (!(await docker.connect())) {
+	console.error("Failed to connect to docker daemon.");
 	process.exit(1);
+}
 
-// List containers
-//docker.listContainers(async (response) => {
-//	console.log(await response.json());
-//	docker.disconnect(); // Optional, otherwise process keeps running
-//});
+export const server = Bun.serve({
+	port: 8080,
+	fetch(req) { return Router(req, "pages"); }
+});
+
+console.log(`Server running at http://localhost:${server.port}/`);
 
 // Create a container
 const container = {
 	Image: "node:latest",
 	Name: "test",
-	Cmd: ["node", "-e", "console.log('Hello World!');"],
+	Cmd: ["tail", "-f", "/dev/null"],
 }
 
-docker.createContainer(container, async (response) => {
-	console.log(await response.json());
-});
+for (let i = 0; i < 5; i++) {
+	docker.createContainer(container, async (response) => {
+		const data = await response.json() as any;
 
-// docker.createContainer(container, async (response) => {
-// 	// const data = await response.json() as any;
-// 	console.log(await response.text());
+		docker.startContainer(data.Id, async (response) => {
+			console.log("Container:", data.Id, "started.");
+		});
+	});
 
-// 	// docker.startContainer(data.Id, async (response) => {
-// 	// 	console.log(await response.text());
-// 	// });
-// });
+	await sleep(1000); // NOTE: This is a hack because of bad code
+}
 
-
-//export const server = Bun.serve({
-//	port: 8080,
-//	fetch(req) { return Router(req, "pages"); }
-//});
-
-//console.log(`Server running at http://localhost:${server.port}/`);

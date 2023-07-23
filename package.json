@@ -12,5 +12,6 @@
   },
   "type": "module",
   "dependencies": {
+    "http-parser-js": "^0.5.8"
   }
 }
