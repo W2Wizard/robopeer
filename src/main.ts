@@ -3,57 +3,31 @@
 // See README and LICENSE files for details.
 //=============================================================================
 
-import * as grade from "./routes/grade";
-import Router, { Route, routes } from "./router";
+import { Elysia } from "elysia";
 import Docker from "./docker/docker";
-import { sleep } from "bun";
+import registerGrade from "./routes/grade";
 
 //=============================================================================
 
-if (import.meta.main !== (import.meta.path === Bun.main)) {
+if (import.meta.main !== (import.meta.path === Bun.main))
 	throw new Error("This module cannot be imported.");
-}
 
-// Routes
+// Webserver
 //=============================================================================
 
-routes["/api/grade"] = new Route(["POST", "GET"], async (request, url) => {
-	switch (request.method) {
-		case "POST": return grade.POST(request, url);
-		default: return new Response();
-	}
-});
+const server = new Elysia();
+[ registerGrade ].forEach(route => route(server));
 
-// Entry point for the application.
+// Entry point
 //=============================================================================
 
-const docker = new Docker();
-if (!(await docker.connect())) {
-	console.error("Failed to connect to docker daemon.");
-	process.exit(1);
-}
+export const docker = new Docker();
+if (await docker.connect()) {
+	console.log("Connected to docker daemon.");
 
-export const server = Bun.serve({
-	port: 8080,
-	fetch(req) { return Router(req, "pages"); }
-});
-
-console.log(`Server running at http://localhost:${server.port}/`);
-
-// Create a container
-const container = {
-	Image: "node:latest",
-	Name: "test",
-	Cmd: ["tail", "-f", "/dev/null"],
-}
-
-docker.createContainer(container, async (response) => {
-	const data = await response.json() as any;
-
-	docker.startContainer(data.Id, async (response) => {
-		console.log("Container:", data.Id, "started.");
-
-		docker.listContainers(async (response) => {
-		});
+	server.listen({port: Bun.env.PORT || 9999, serverName: "Bun"}, ({port}) => {
+		console.log(`Webserver: http://localhost:${port}/`);
 	});
-});
+} else {
+	console.error("Failed to connect to docker daemon.");
+}

@@ -3,16 +3,15 @@
 // See README and LICENSE files for details.
 //=============================================================================
 
-import { on } from "stream";
-import { Socket } from "bun";
+import { Elysia } from "elysia";
 
-/**
- * Handle POST requests to /grade.
- * Grades a git repository and returns the results.
- *
- * @param git The git repository to grade.
- * @returns JSON object with the grading results.
- */
-export async function POST(request: Request, url: URL): Promise<Response> {
-	return new Response("Not implemented", { status: 501 });
+//=============================================================================
+
+// Register the routes for the /grade endpoint.
+export default function register(server: Elysia) {
+	console.log("Registering grade route.");
+
+	server.post("/grade/:repo", ({ request, query, params }) => {
+		return new Response("Hello World!", { status: 200 });
+	});
 }

@@ -5,6 +5,7 @@
 
 import { HTTPParser, HTTPParserJS } from "http-parser-js";
 
+//=============================================================================
 
 /**
  * A mirror class of the Request class but instead its used to build the string
@@ -29,22 +30,12 @@ export class RawRequest {
 	public toString() {
 		let requestString = `${this.method} ${this.url} HTTP/1.1\r\n`;
 
-		// Add headers
-		if (this.headers) {
-			for (const [name, value] of this.headers.entries()) {
+		if (this.headers)
+			for (const [name, value] of this.headers.entries())
 				requestString += `${name}: ${value}\r\n`;
-			}
-		}
 
-		// Add an empty line to separate headers and body
 		requestString += '\r\n';
-
-		// Add the request body if it exists
-		if (this.body) {
-			requestString += this.body;
-		}
-
-		return requestString;
+		return this.body ? requestString + this.body : requestString;
 	}
 }
 
