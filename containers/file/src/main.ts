@@ -3,7 +3,7 @@
 // See README and LICENSE files for details.
 //=============================================================================
 
-import { mkdir } from "fs/promises";
+import { mkdirSync } from "fs"
 import { randomUUID } from "crypto";
 
 //=============================================================================
@@ -37,11 +37,13 @@ async function runner(request: Request) {
 	const directory = `./tmp/${id}/`
 
 	try {
+		console.log("Grading code...");
 		const body = await request.json() as { code: string };
-		await mkdir(directory, { recursive: true });
+		mkdirSync(directory, { recursive: true });
 		await Bun.write(Bun.file(`${directory}/${id}.c`), body.code);
 
 		{ // Compile
+			console.log("Compiling...");
 			const { exitCode, stderr } = Bun.spawnSync(["gcc", `${id}.c`], {
 				cwd: directory,
 				env: { ...process.env }
@@ -52,6 +54,7 @@ async function runner(request: Request) {
 		}
 
 		{ // Execute
+			console.log("Executing...");
 			const { exitCode, stderr, stdout } = Bun.spawnSync([`${directory}/a.out`], {
 				cwd: directory,
 				env: { ...process.env }
@@ -69,6 +72,17 @@ async function runner(request: Request) {
 
 //=============================================================================
 
-Bun.serve({ port: 8000, fetch(request) {
-	return runner(request);
-}});
+if (import.meta.main === (import.meta.path === Bun.main)) {
+	const server = Bun.serve({ port: 8000, fetch(request) {
+		return runner(request);
+	}});
+
+	console.log(`Webserver: http://localhost:${server.port}/`);
+	["SIGINT", "SIGTERM"].forEach(signal => {
+		//@ts-ignore - BunJS TS definitions are a bit sus
+		process.on(signal, () => {
+			server.stop();
+			console.log("Server closed.");
+		});
+	});
+}
