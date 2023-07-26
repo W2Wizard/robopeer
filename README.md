@@ -21,21 +21,6 @@ Requires [Bun.sh](https://bun.sh) to install dependencies.
 bun install
 ```
 
-## Usage (Runner)
-
-At the moment it will only run C code as there is no configuration option to change how to handle different languages.
-For the runner itself you can at the moment run it with:
-```bash
-bun run ./container/index.ts
-```
-
-This will "run" the runner at http://localhost:8000, you can use Postman or curl to send a POST request to it with the following body:
-```json
-{
-    "code": "#include <stdio.h>\nint main() { printf(\"Hello World!\"); }"
-}
-```
-
 If you have anything is logged to stderr or the exitcode is not 0 from either compiling or running the code, you get a 400 response.
 
 ## Usage (Server)
