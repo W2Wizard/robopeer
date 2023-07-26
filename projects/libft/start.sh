@@ -6,8 +6,14 @@ if [ -z "$GIT_URL" ]; then
 fi
 
 randID=$(xxd -l 16 -ps /dev/urandom | tr -d ' \n')
-workdir=/tmp/$randID/libft
+testdir="/tmp/$randID/test"
+workdir="/tmp/$randID/libft"
 libobjs="/tmp/$randID/objects"
+
+# Precautionary measures
+rm -rf $libobjs && mkdir -p $libobjs
+rm -rf $testdir && mkdir -p $testdir
+rm -rf $workdir && mkdir -p $workdir
 
 # Clone the repo and compile the library
 git clone $GIT_URL $workdir --recurse-submodules
@@ -22,9 +28,10 @@ fi
 # than a production ready script.
 
 # Get all the *.o files from the workdir and move it to decompliePath
-rm -rf $libobjs && mkdir -p $libobjs
 find $workdir -name "*.o" -exec cp {} $libobjs \;
+gcc -shared -o $testdir/libft.so $libobjs/*.o
 
-# Compile all the *.o files in the libobjs to a shared library
-gcc -shared -o /app/libft.so $libobjs/*.o
+# Move the test files to the testdir
+cp /app/* $testdir
+cd $testdir
 bun test
