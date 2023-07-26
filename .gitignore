@@ -131,3 +131,7 @@ dist
 .sqlite
 .DS_Store
 tmp
+*.so
+*.o
+*.a
+*.dylib

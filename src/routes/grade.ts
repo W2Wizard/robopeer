@@ -3,37 +3,40 @@
 // See README and LICENSE files for details.
 //=============================================================================
 
+import { docker } from "@/main";
+import chalk from "chalk";
 import { Elysia } from "elysia";
+import { accessSync, constants } from "fs";
+
+interface RequestBody {
+	// The git repository to clone.
+	gitURL: string;
+	// The branch to clone.
+	branch: string;
+	// The hash of the commit to clone.
+	commit: string;
+}
 
 //=============================================================================
 
 // Register the routes for the /grade endpoint.
 export default function register(server: Elysia) {
-	console.log("Registering /grade endpoint.");
-
-	// For single-file submissions.
-	server.post("/api/grade/file", async ({ request, query, params }) => {
-		const grading = new Promise<string>((resolve, reject) => {
-			throw new Error("Not implemented.");
-		});
-
-		try {
-			return new Response(await grading, { status: 200 });
-		} catch (err) {
-			return new Response(err as string, { status: 400 });
-		}
-	});
+	console.log(chalk.green("Registering /grade routes."));
 
 	// For git repositories
-	server.post("/api/grade/git", async ({ request, query, params }) => {
-		const grading = new Promise<string>((resolve, reject) => {
-			throw new Error("Not implemented.");
-		});
+	server.post("/api/grade/git/:name", async ({ params, request }) => {
+		const project = params.name;
+		const path = `./projects/${project}/index.test.ts`;
+
+		const { gitURL, branch, commit } = await request.json() as RequestBody;
+		if (!gitURL || !branch || !commit)
+			return new Response("Missing parameters.", { status: 400 });
 
 		try {
-			return new Response(await grading, { status: 200 });
-		} catch (err) {
-			return new Response(err as string, { status: 400 });
+			accessSync(path, constants.F_OK | constants.R_OK);
+			return new Response("Project found.", { status: 200 });
+		} catch (error) {
+			return new Response("Project not found.", { status: 404 });
 		}
 	});
 }

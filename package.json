@@ -3,6 +3,10 @@
   "author": "W2Wizard",
   "description": "A code grading server",
   "module": "./src/main.ts",
+  "scripts": {
+    "start": "bun run ./src/main.ts",
+    "build": "bun build ./src/main.ts --compile --outfile grader"
+  },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.2",
     "bun-types": "^0.7.0"
@@ -12,6 +16,7 @@
   },
   "type": "module",
   "dependencies": {
+    "@elysiajs/fn": "^0.5.2",
     "chalk": "^5.3.0",
     "elysia": "^0.5.24",
     "http-parser-js": "^0.5.8"
