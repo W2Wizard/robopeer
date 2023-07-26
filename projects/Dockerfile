@@ -4,6 +4,8 @@
 #=============================================================================
 # Docker image for running git based repositories with bun test framework.
 #=============================================================================
+# TODO: Setup a runner user with very limited rights.
+#=============================================================================
 
 FROM oven/bun:latest
 WORKDIR /app
@@ -11,6 +13,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     git \
     cmake \
+    vim-common \
     clang-tidy \
     build-essential \
     && rm -rf /var/lib/apt/lists/*

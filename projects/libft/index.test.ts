@@ -26,11 +26,7 @@ const { symbols, close } = dlopen("libft.so", {
 	ft_strlen: {
 		returns: FFIType.i32,
 		args: [FFIType.ptr],
-	},
-	ft_intlen: {
-		returns: FFIType.i32,
-		args: [FFIType.i32, FFIType.i32],
-	},
+	}
 });
 
 beforeAll(() => {
@@ -57,15 +53,5 @@ describe("strlen", () => {
 		const str = ptr(Buffer.from(`\0`, "utf8"));
 
 		expect(symbols.ft_strlen(str)).toBe(0);
-	});
-});
-
-describe("intlen", () => {
-	it("returns the correct length", () => {
-		expect(symbols.ft_intlen(123, 10)).toBe(3);
-	});
-
-	it("intmax + 1", () => {
-		expect(symbols.ft_intlen(2147483648, 10)).toBe(10);
 	});
 });

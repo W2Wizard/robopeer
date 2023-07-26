@@ -49,3 +49,17 @@ bun run ./src/main.ts
 It will connect to the docker daemon on the host machine, so make sure that is running.
 Also it will run on http://localhost:8080. This will be the main way of interfacing
 with the server, and it will be the only way to submit code to be run later on.
+
+## Docker runner
+
+To test the runner you can build a docker image and run it with the following commands:
+
+```bash
+# Build the runner image
+docker build -t runner -f ./container/Dockerfile .
+```
+
+```bash
+# Execute the runner with the following tests on the following repo
+docker run -v ./projects/libft:/app -e GIT_URL="https://github.com/fbescodam/libft.git" runner
+```
