@@ -3,8 +3,8 @@
 // See README and LICENSE files for details.
 //=============================================================================
 
-import { docker } from "@/main";
 import chalk from "chalk";
+import { docker } from "@/main";
 import { Elysia } from "elysia";
 import { accessSync, constants } from "fs";
 
@@ -34,14 +34,12 @@ function constructContainer(project: string, request: RequestBody) {
 		"AttachStderr": false,
 		"OpenStdin": false,
 		"Privileged": false,
-		//"User": "runner", // We first run as root, but drop privileges later.
 		"Tty": false,
+		"StopTimeout": 10, // ~10 seconds
+		"StopSignal": "SIGTERM",
 		"HostConfig": {
-			// TODO: Option to enable it for debugging?
-			"AutoRemove": false,
-			"Binds": [
-				// TODO: Set as read-only.
-				// Bind the project directory to /app in the container.
+			"AutoRemove": false, // TODO: Option to enable it for debugging?
+			"Binds": [ // TODO: Set as read-only.
 				`${process.cwd()}/projects/${project}:/app`,
 			],
 			"Memory": 50 * 1024 * 1024, // ~50MB
@@ -65,14 +63,24 @@ function constructContainer(project: string, request: RequestBody) {
 function launchsandbox(project: string, request: RequestBody) {
 	const container = constructContainer(project, request);
 
-	return new Promise<string>((resolve, reject) => {
+	// TODO: Make this more readable.
+	// Callback hell, but its the only way to do it.
+	return new Promise<Response>((resolve, reject) => {
 		docker.createContainer(container, async (res)	=> {
 			if (!res.ok) { return reject(await res.json()); }
 
 			const daemon = await res.json() as { Id: string };
 			docker.startContainer(daemon.Id, async (res) => {
 				if (!res.ok) { return reject(await res.json()); }
-				resolve(daemon.Id);
+
+				docker.waitContainer(daemon.Id, async (res) => {
+					if (!res.ok) { return reject(await res.json()); }
+
+					const data = await res.json() as { StatusCode: number };
+					if (data.StatusCode !== 0)
+						return resolve(new Response(`Failed with: ${data.StatusCode}`, {status: 400 }));
+					return resolve(new Response("Tests passed.", { status: 200 }));
+				});
 			});
 		});
 	});
@@ -94,7 +102,8 @@ export default function register(server: Elysia) {
 
 		try {
 			accessSync(path, constants.F_OK | constants.R_OK);
-			return new Response(await launchsandbox(project, body), { status: 200 });
+			return await launchsandbox(project, body);
+			//return new Response(await launchsandbox(project, body), { status: 200 });
 		} catch (exception) {
 			const error = exception as Error;
 			return new Response(error.message, { status: 500 });

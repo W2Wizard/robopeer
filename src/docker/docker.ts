@@ -162,4 +162,25 @@ export default class Docker {
 
 		this.send(request, cb);
 	}
+
+	/**
+	 * Wait for a container to finish.
+	 * Blocks until the container stops, then returns the exit code.
+	 *
+	 * @param id The id of the container to wait for.
+	 * @param cb A callback that will be called when the response is received.
+	 *
+	 * @see https://docs.docker.com/engine/api/v1.43/#operation/ContainerWait
+	 */
+	public waitContainer(id: string, cb?: ResponseCallback) {
+		if (!this.socket)
+			throw new Error("Not connected to docker daemon.");
+
+		const request = new RawRequest(`${this.endpoint}/containers/${id}/wait`, {
+			method: "POST",
+			headers: { "Host": "localhost" }
+		});
+
+		this.send(request, cb);
+	}
 }
