@@ -36,12 +36,14 @@ function constructContainer(project: string, request: RequestBody) {
 		"Privileged": false,
 		//"User": "runner", // We first run as root, but drop privileges later.
 		"Tty": false,
-		"Volumes": {
-			"/app": {
-				"bind": `/projects/${project}`,
-			}
-		},
 		"HostConfig": {
+			// TODO: Option to enable it for debugging?
+			"AutoRemove": false,
+			"Binds": [
+				// TODO: Set as read-only.
+				// Bind the project directory to /app in the container.
+				`${process.cwd()}/projects/${project}:/app`,
+			],
 			"Memory": 50 * 1024 * 1024, // ~50MB
 			"MemorySwap": -1,
 			"Privileged": false,
