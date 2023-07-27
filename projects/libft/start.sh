@@ -6,13 +6,11 @@ if [ -z "$GIT_URL" ]; then
 fi
 
 randID=$(xxd -l 16 -ps /dev/urandom | tr -d ' \n')
-testdir="/tmp/$randID/test"
+outputdir="/home/runner/"
 workdir="/tmp/$randID/libft"
 libobjs="/tmp/$randID/objects"
 
-# Precautionary measures
 rm -rf $libobjs && mkdir -p $libobjs
-rm -rf $testdir && mkdir -p $testdir
 rm -rf $workdir && mkdir -p $workdir
 
 # Clone the repo and compile the library
@@ -29,9 +27,13 @@ fi
 
 # Get all the *.o files from the workdir and move it to decompliePath
 find $workdir -name "*.o" -exec cp {} $libobjs \;
-gcc -shared -o $testdir/libft.so $libobjs/*.o
+gcc -shared -o $outputdir/libft.so $libobjs/*.o
+cp /app/index.test.ts $outputdir
 
-# Move the test files to the testdir
-cp /app/* $testdir
-cd $testdir
-bun test
+# TODO: Prevent runner from deleting ANY files that are owned by root
+if ! su - runner -s /bin/rksh -c "bun test"; then
+    echo -e "\e[1;31mFailed to run bun test\e[0m"
+    exit 1
+fi
+exit 0
+

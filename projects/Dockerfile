@@ -11,12 +11,16 @@ FROM oven/bun:latest
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
+    ksh \
     git \
+    sudo \
     cmake \
     vim-common \
     clang-tidy \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
+
+RUN adduser --disabled-password --shell /bin/bash "runner"
 
 COPY entry.sh /usr/local/bin/entry.sh
 ENTRYPOINT [ "entry.sh" ]
