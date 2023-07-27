@@ -77,9 +77,12 @@ function launchsandbox(project: string, request: RequestBody) {
 					if (!res.ok) { return reject(await res.json()); }
 
 					const data = await res.json() as { StatusCode: number };
-					if (data.StatusCode !== 0)
-						return resolve(new Response(`Failed with: ${data.StatusCode}`, {status: 400 }));
-					return resolve(new Response("Tests passed.", { status: 200 }));
+					docker.getLogs(daemon.Id, async (res) => {
+						if (!res.ok) { return reject(await res.json()); }
+
+						const logs = await res.text();
+						return resolve(new Response(logs, { status: data.StatusCode == 0 ? 200 : 400  }));
+					});
 				});
 			});
 		});

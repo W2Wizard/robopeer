@@ -183,4 +183,28 @@ export default class Docker {
 
 		this.send(request, cb);
 	}
+
+	/**
+	 * Get the logs of a container.
+	 *
+	 * @param id The id of the container to get the logs from.
+	 * @param cb A callback that will be called when the response is received.
+	 *
+	 * @see https://docs.docker.com/engine/api/v1.43/#operation/ContainerLogs
+	 */
+	public getLogs(id: string, cb?: ResponseCallback) {
+		if (!this.socket)
+			throw new Error("Not connected to docker daemon.");
+
+		// BUG: Work's but gives back literal binary data.
+		const request = new RawRequest(`${this.endpoint}/containers/${id}/logs?stdout=true&stderr=true&timestamps=true`, {
+			method: "GET",
+			headers: {
+				"Host": "localhost",
+				"Accept": "application/json"
+			}
+		});
+
+		this.send(request, cb);
+	}
 }
