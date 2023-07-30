@@ -92,7 +92,8 @@ function launchsandbox(project: string, request: RequestBody) {
 							return reject(await res.json());
 						}
 
-						const logs = Docker.parseDaemonBuffer(await res.arrayBuffer());
+						const buffer = Buffer.from(await res.arrayBuffer());
+						const logs = Docker.parseDaemonBuffer(buffer);
 						return resolve(
 							new Response(logs, { status: data.StatusCode == 0 ? 200 : 400 })
 						);

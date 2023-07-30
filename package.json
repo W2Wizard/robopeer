@@ -8,7 +8,7 @@
     "build": "bun build ./src/main.ts --compile --outfile grader"
   },
   "devDependencies": {
-    "bun-types": "^0.7.0"
+    "bun-types": "^0.7.1"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"

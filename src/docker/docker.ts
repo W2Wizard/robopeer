@@ -30,15 +30,21 @@ export namespace Docker {
 	 * @note Each line is always ending with a newline character.
 	 * @see https://ahmet.im/blog/docker-logs-api-binary-format-explained/
 	 */
-	export function parseDaemonBuffer(buff: ArrayBuffer): string {
+	export function parseDaemonBuffer(buffer: Buffer): string {
 		let data = "";
 		let offset = 0;
-		let buffer = Buffer.from(buff);
 
 		while (offset < buffer.length) {
 			const length = buffer.readUInt32BE((offset += 4));
 			const line = buffer.subarray((offset += 4), (offset += length));
-			data += line.toString();
+			const spacePos = line.indexOf(' ');
+
+			// Some formatting of the timestamp.
+			// WARNING: Will cause bugs if we request logs without timestamps.
+			const message = line.subarray(spacePos + 1);
+			const date = line.subarray(0, spacePos).subarray(0, 19);
+			date.set([32], date.indexOf('T'));
+			data += `[${date}] ${message}`;
 		}
 
 		return data;
