@@ -3,7 +3,7 @@
 // See README and LICENSE files for details.
 //=============================================================================
 
-import { CString, dlopen, FFIType, ptr,  } from "bun:ffi";
+import { dlopen, FFIType, ptr } from "bun:ffi";
 import { describe, expect, it, beforeAll, afterAll } from "bun:test";
 
 /**
@@ -26,12 +26,20 @@ const { symbols, close } = dlopen("libft.so", {
 	ft_strlen: {
 		returns: FFIType.i32,
 		args: [FFIType.ptr],
-	}
+	},
 });
 
 beforeAll(() => {
-	["SIGINT", "SIGTERM", "SIGHUP", "beforeExit"].forEach((signal) => {
-		process.on(signal, () => { close(); process.exit(1); });
+	process.on("beforeExit", (err) => {
+		close();
+		process.exit(0);
+	});
+
+	["SIGINT", "SIGTERM", "SIGHUP"].forEach((signal) => {
+		process.on(signal, () => {
+			close();
+			process.exit(1);
+		});
 	});
 });
 
@@ -40,6 +48,16 @@ afterAll(() => {
 });
 
 //=============================================================================
+
+describe("makefile", () => {
+	it("compiles with '-Wextra -Werror -Wall'", async () => {
+		const makefile = Bun.file("Makefile");
+		const text = await makefile.text();
+		const requiredFlags = ["-Wall", "-Wextra", "-Werror"];
+
+		expect(requiredFlags.every((flag) => text.includes(flag))).toBe(true);
+	});
+});
 
 describe("strlen", () => {
 	it("normal string", async () => {

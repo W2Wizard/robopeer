@@ -4,7 +4,7 @@
 //=============================================================================
 
 import { Elysia } from "elysia";
-import Docker from "./docker/docker";
+import { Docker } from "./docker/docker";
 import registerGrade from "./routes/grade";
 
 //=============================================================================
@@ -12,17 +12,17 @@ import registerGrade from "./routes/grade";
 if (import.meta.main !== (import.meta.path === Bun.main))
 	throw new Error("This module cannot be imported.");
 
-	// Entry point
+// Entry point
 //=============================================================================
 
 const server = new Elysia();
-[ registerGrade ].forEach(route => route(server));
+[registerGrade].forEach((route) => route(server));
 
-export const docker = new Docker();
-if (await docker.connect()) {
+export const modem = new Docker.Modem();
+if (await modem.connect()) {
 	console.log("Connected to docker daemon.");
 
-	server.listen(8000, ({port}) => {
+	server.listen(Number(Bun.env.PORT ?? 8000), ({ port }) => {
 		console.log(`Webserver: http://localhost:${port}/`);
 	});
 } else {

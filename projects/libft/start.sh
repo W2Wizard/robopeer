@@ -28,7 +28,10 @@ fi
 # than a production ready script.
 
 # Get all the *.o files from the workdir and move it to decompliePath
+
+# Find recursively all the *.o files in the workdir
 find $workdir -name "*.o" -exec cp {} $libobjs \;
+find $workdir -name "Makefile" -exec cp {} $outputdir \;
 gcc -shared -o $outputdir/libft.so $libobjs/*.o
 cp /app/index.test.ts $outputdir
 

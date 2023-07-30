@@ -34,7 +34,7 @@ export class RawRequest {
 			for (const [name, value] of this.headers.entries())
 				requestString += `${name}: ${value}\r\n`;
 
-		requestString += '\r\n';
+		requestString += "\r\n";
 		return this.body ? requestString + this.body : requestString;
 	}
 }
@@ -107,7 +107,7 @@ export class ResponseParser {
 	/** Returns the parsed response. */
 	public toResponse(): Response {
 		if (!this.complete) {
-			throw new Error('Could not parse');
+			throw new Error("Could not parse");
 		}
 
 		const body = Buffer.concat(this.bodyChunks);

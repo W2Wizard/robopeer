@@ -4,9 +4,10 @@
 //=============================================================================
 
 import chalk from "chalk";
-import { docker } from "@/main";
+import { modem } from "@/main";
 import { Elysia } from "elysia";
 import { accessSync, constants } from "fs";
+import { Docker } from "@/docker/docker";
 
 interface RequestBody {
 	// The git repository to clone.
@@ -27,32 +28,33 @@ interface RequestBody {
  */
 function constructContainer(project: string, request: RequestBody) {
 	return {
-		"Image": "w2wizard/runner",
-		"NetworkDisabled": false,
-		"AttachStdin": false,
-		"AttachStdout": false,
-		"AttachStderr": false,
-		"OpenStdin": false,
-		"Privileged": false,
-		"Tty": false,
-		"StopTimeout": 10, // ~10 seconds
-		"StopSignal": "SIGTERM",
-		"HostConfig": {
-			"AutoRemove": false, // TODO: Option to enable it for debugging?
-			"Binds": [ // TODO: Set as read-only.
+		Image: "w2wizard/runner",
+		NetworkDisabled: false,
+		AttachStdin: false,
+		AttachStdout: false,
+		AttachStderr: false,
+		OpenStdin: false,
+		Privileged: false,
+		Tty: false,
+		StopTimeout: 10, // ~10 seconds
+		StopSignal: "SIGTERM",
+		HostConfig: {
+			AutoRemove: false,
+			Binds: [
+				// TODO: Set as read-only.
 				`${process.cwd()}/projects/${project}:/app`,
 			],
-			"Memory": 50 * 1024 * 1024, // ~50MB
-			"MemorySwap": -1,
-			"Privileged": false,
-			"CpusetCpus": "0", // only use one core
+			Memory: 50 * 1024 * 1024, // ~50MB
+			MemorySwap: -1,
+			Privileged: false,
+			CpusetCpus: "0", // only use one core
 		},
-		"Env": [
+		Env: [
 			`GIT_URL=${request.gitURL}`,
 			`GIT_BRANCH=${request.branch}`,
 			`GIT_COMMIT=${request.commit}`,
 		],
-	}
+	};
 }
 
 /**
@@ -62,26 +64,38 @@ function constructContainer(project: string, request: RequestBody) {
  */
 function launchsandbox(project: string, request: RequestBody) {
 	const container = constructContainer(project, request);
+	const logParams = new URLSearchParams({
+		stdout: "true",
+		stderr: "true",
+		timestamps: "true",
+	});
 
-	// TODO: Make this more readable.
-	// Callback hell, but its the only way to do it.
 	return new Promise<Response>((resolve, reject) => {
-		docker.createContainer(container, async (res)	=> {
-			if (!res.ok) { return reject(await res.json()); }
+		Docker.createContainer(modem, container, async (res) => {
+			if (!res.ok) {
+				return reject(await res.json());
+			}
+			const containerID = (await res.json()) as { Id: string };
 
-			const daemon = await res.json() as { Id: string };
-			docker.startContainer(daemon.Id, async (res) => {
-				if (!res.ok) { return reject(await res.json()); }
+			Docker.startContainer(modem, containerID.Id, async (res) => {
+				if (!res.ok) {
+					return reject(await res.json());
+				}
+				Docker.waitContainer(modem, containerID.Id, async (res) => {
+					if (!res.ok) {
+						return reject(await res.json());
+					}
 
-				docker.waitContainer(daemon.Id, async (res) => {
-					if (!res.ok) { return reject(await res.json()); }
+					const data = (await res.json()) as { StatusCode: number };
+					Docker.getLogs(modem, containerID.Id, logParams, async (res) => {
+						if (!res.ok) {
+							return reject(await res.json());
+						}
 
-					const data = await res.json() as { StatusCode: number };
-					docker.getLogs(daemon.Id, async (res) => {
-						if (!res.ok) { return reject(await res.json()); }
-
-						const logs = await res.text();
-						return resolve(new Response(logs, { status: data.StatusCode == 0 ? 200 : 400  }));
+						const logs = Docker.parseDaemonBuffer(await res.arrayBuffer());
+						return resolve(
+							new Response(logs, { status: data.StatusCode == 0 ? 200 : 400 })
+						);
 					});
 				});
 			});
@@ -99,7 +113,7 @@ export default function register(server: Elysia) {
 	server.post("/api/grade/git/:name", async ({ params, request }) => {
 		const project = params.name;
 		const path = `./projects/${project}/index.test.ts`;
-		const body = await request.json() as RequestBody;
+		const body = (await request.json()) as RequestBody;
 		if (!body.gitURL || !body.branch || !body.commit)
 			return new Response("Missing parameters.", { status: 400 });
 
