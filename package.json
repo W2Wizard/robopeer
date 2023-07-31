@@ -4,6 +4,7 @@
   "description": "A code grading server",
   "module": "./src/main.ts",
   "scripts": {
+		"new": "/bin/bash ./scripts/new.sh",
     "start": "bun run ./src/main.ts",
     "build": "bun build ./src/main.ts --compile --outfile grader"
   },
