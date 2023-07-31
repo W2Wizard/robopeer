@@ -1,4 +1,6 @@
-# Projects
+# Projects 📖
 
-All the different projects that users can grade their version of the project.
-Each project needs to contain a `start.sh` and `index.test.ts` file.
+## Creating new Projects 🔨
+
+Use `bun run new <name>` to create new projects that comply with the docker image.
+The projects in the repo are merely examples.
