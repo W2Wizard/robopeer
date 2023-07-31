@@ -27,6 +27,8 @@ bun install
 
 ### 🐳 Docker Setup
 
+> **Note**: The docker image hasn't been configured properly yet to make sure the code isn't actually doing something stupid (deleting files, cd, ...) atm it uses Kornshell just a basic simple attempt but there are no serious measures whatsoever.
+
 Make sure `Docker` is installed and running on your machine.
 Build the Docker image:
 
