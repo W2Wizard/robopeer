@@ -1,43 +1,47 @@
 <div align="center">
-    <h1><code>Grader</code></h1>
+    <h1><code>🧪 Grader 🧪</code></h1>
     <sub>Written by W2Wizard</sub>
 </div>
 <br/>
 
-Grader is meant as a webserver to which you can submit code and have it "graded". Basically a safe environment to run code in without having to worry about it doing anything malicious.
+Grader is a **webserver** designed to grade your code in a safe environment. It allows you to submit code and have it "graded" without any worries about potential malicious activities.
 
-The grading works by comparing the output of the provided git repo (after compiling it) to a series of test ran with `bun:test`, and then returning the results.
+## 🎯 How it Works
 
-Since [bun](https://bun.sh) also provides [FFI](https://bun.sh/docs/api/ffi) capabilities, making it really convenient to test things like a library and execute the tests directly with TypeScript.
+The grading process involves comparing the output of the provided git repository (after compiling it) to a series of tests run with `bun:test`. Grader then returns the results of these tests. With an appropriate status code.
 
-It is more of a proof of concept than anything else, but it is still usable. Also my personal project to work with Bun instead of
-NodeJS as my runtime.
+- `200` - All tests passed.
+- `400` - Compilation failed.
+- `500` - Grader failed.
 
->**Warning**: This is still a work in progress, and is not ready for production use.
+> **Warning**: Grader is currently a work in progress and is not yet suitable for production use.
 
->**Note**: As of now grader will only focus on testing C, but it is possible to extend it to other languages.
-
-## Install dependencies
+## 🛠️ Installation
 Requires [Bun.sh](https://bun.sh) to install dependencies.
 
 ```bash
 bun install
 ```
 
-## Usage (Server)
+## 🚀 Usage 
 
-### Docker setup
-Make sure docker is installed and running on your machine.
-First you need to build the docker image:
+### 🐳 Docker Setup
+
+Make sure `Docker` is installed and running on your machine.
+Build the Docker image:
+
 ```bash
 docker build -t w2wizard/runner ./projects/
 ```
-
-### Running the server
+### 🧰 Running the Server
+Use the following command to run the server:
 ```bash
+bun run start
+# or
 bun run ./src/main.ts
+# or
+bun build ./src/main.ts --compile --outfile grader
 ```
-
 `Output`:
 ```
 Registering /grade routes.
@@ -45,8 +49,9 @@ Connected to docker daemon.
 Webserver: http://localhost:8000/
 ```
 
-### Sending grading request
+---
 
+### 📨 Sending a Grading Request
 The server by default run on http://localhost:8080. To send a request to it you can use the following curl command:
 ```bash
 curl -XPOST -H "Content-type: application/json" -d '{
@@ -58,7 +63,12 @@ curl -XPOST -H "Content-type: application/json" -d '{
 
 `Output`: 
 ```
-41b7cc16874dae531b6d4e35a36622fd955d9700a1664f491f9ff2464add48eb
-```
+Logs from container:
+[+] Cloning git repository...
+[+] Checking out commit 67dc80ae6a5d2c56a4305f5194672fe19130e705...
+[+] Compiling code...
+[+] Running tests...
+[+] ...
 
-Any errors will be returned in the response body, that is, if the container reports some sort of error or the code fails to compile, etc etc.
+Libft passed!
+```
