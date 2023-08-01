@@ -71,6 +71,8 @@ function constructContainer(project: string, request: RequestBody) {
 function launchContainer(project: string, request: RequestBody) {
 	const containerPayload = constructContainer(project, request);
 
+	// BUG(W2): This will fail after too many subsequent requests.
+	// As it's reusing the same container id.
 	return new Promise<Response>((resolve, reject) => {
 		Docker.createContainer(modem, containerPayload, async (res) => {
 			if (!res.ok) return reject(await res.json());
@@ -128,12 +130,14 @@ export default function register(server: Elysia) {
 	server.post("/api/grade/git/:name", async ({ params, request }) => {
 		const project = params.name;
 		const path = `./projects/${project}/index.test.ts`;
-		const body = (await request.json()) as RequestBody;
+
+		// BUG(W2): Empty body is not handled correctly.
+		const body: RequestBody = await request.json();
 		if (!body.gitURL || !body.branch || !body.commit)
 			return new Response("Missing parameters.", { status: 400 });
 
-		logger.info("Running tests for:", project, "=>", body);
 		try {
+			logger.info("Running tests for:", project, "=>", body);
 			accessSync(path, constants.F_OK | constants.R_OK);
 			return await launchContainer(project, body);
 		} catch (exception) {
