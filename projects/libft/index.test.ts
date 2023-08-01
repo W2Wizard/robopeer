@@ -3,6 +3,7 @@
 // See README and LICENSE files for details.
 //=============================================================================
 
+import { sleep } from "bun";
 import { dlopen, FFIType, ptr } from "bun:ffi";
 import { describe, expect, it, beforeAll, afterAll } from "bun:test";
 
@@ -30,11 +31,6 @@ const { symbols, close } = dlopen("libft.so", {
 });
 
 beforeAll(() => {
-	process.on("beforeExit", (err) => {
-		close();
-		process.exit(0);
-	});
-
 	["SIGINT", "SIGTERM", "SIGHUP"].forEach((signal) => {
 		process.on(signal, () => {
 			close();
@@ -43,9 +39,7 @@ beforeAll(() => {
 	});
 });
 
-afterAll(() => {
-	close();
-});
+afterAll(() => close());
 
 //=============================================================================
 
@@ -55,8 +49,10 @@ describe("makefile", () => {
 		const text = await makefile.text();
 		const requiredFlags = ["-Wall", "-Wextra", "-Werror"];
 
+		await sleep(1000);
+
 		expect(requiredFlags.every((flag) => text.includes(flag))).toBe(true);
-	});
+	}, { timeout: 1 });
 });
 
 describe("strlen", () => {

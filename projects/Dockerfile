@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y \
     git \
     sudo \
     cmake \
+    coreutils \
     vim-common \
     clang-tidy \
     build-essential \

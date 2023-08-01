@@ -4,18 +4,23 @@
 //=============================================================================
 
 import chalk from "chalk";
-import { modem } from "@/main";
+import { logger, modem } from "@/main";
 import { Elysia } from "elysia";
 import { accessSync, constants } from "fs";
 import { Docker } from "@/docker/docker";
 
 interface RequestBody {
-	// The git repository to clone.
 	gitURL: string;
-	// The branch to clone.
 	branch: string;
-	// The hash of the commit to clone.
 	commit: string;
+}
+
+enum ExitCode {
+	Success = 0,
+	MinorError = 1,
+	MajorError = 2,
+	Timeout = 124, // NOTE(W2): Requires coreutils from GNU.
+	NotFound = 128,
 }
 
 //=============================================================================
@@ -58,45 +63,55 @@ function constructContainer(project: string, request: RequestBody) {
 }
 
 /**
- * Launch a sandboxed container to run the code in.
- * @param request The request to get the code from.
- * @returns stdout or stderr of the container.
+ * Launch a container to run the code in.
+ * @param project The project name to use as a comparison.
+ * @param request The incoming request.
+ * @returns Response with the stdout or stderr of the container.
  */
-function launchsandbox(project: string, request: RequestBody) {
-	const container = constructContainer(project, request);
-	const logParams = new URLSearchParams({
-		stdout: "true",
-		stderr: "true",
-		timestamps: "true",
-	});
+function launchContainer(project: string, request: RequestBody) {
+	const containerPayload = constructContainer(project, request);
 
 	return new Promise<Response>((resolve, reject) => {
-		Docker.createContainer(modem, container, async (res) => {
-			if (!res.ok) {
-				return reject(await res.json());
-			}
-			const containerID = (await res.json()) as { Id: string };
+		Docker.createContainer(modem, containerPayload, async (res) => {
+			if (!res.ok) return reject(await res.json());
 
-			Docker.startContainer(modem, containerID.Id, async (res) => {
-				if (!res.ok) {
-					return reject(await res.json());
-				}
-				Docker.waitContainer(modem, containerID.Id, async (res) => {
-					if (!res.ok) {
-						return reject(await res.json());
-					}
+			const container = (await res.json()) as { Id: string };
+			Docker.startContainer(modem, container.Id, async (res) => {
+				if (!res.ok) return reject(await res.json());
+				const id = container.Id;
+				const queryLogParams = new URLSearchParams({
+					stdout: "true",
+					stderr: "true",
+					timestamps: "true",
+				});
 
-					const data = (await res.json()) as { StatusCode: number };
-					Docker.getLogs(modem, containerID.Id, logParams, async (res) => {
-						if (!res.ok) {
-							return reject(await res.json());
+				Docker.waitContainer(modem, id, async (res) => {
+					if (!res.ok) return reject(await res.json());
+
+					const data = (await res.json()) as { StatusCode: ExitCode };
+					Docker.getLogs(modem, id, queryLogParams, async (res) => {
+						if (!res.ok) return reject(await res.json());
+
+						logger.info(`${id.slice(0, 12)}: exited: ${data.StatusCode}.`);
+						const logs = Docker.parseResponseBuffer(await res.arrayBuffer());
+
+						switch (data.StatusCode) {
+							case ExitCode.Success:
+								return resolve(new Response(logs, { status: 200 }));
+							case ExitCode.NotFound:
+							case ExitCode.MinorError:
+							case ExitCode.MajorError:
+								return resolve(new Response(logs, { status: 400 }));
+							case ExitCode.Timeout: {
+								const body = `Grader timed out: ${logs}`;
+								return resolve(new Response(body, { status: 408 }));
+							}
+							default: { // Blame us for everything else.
+								return reject(
+									new Error(`Unkown code: ${data.StatusCode}: ${logs}`)
+								);
+							}
 						}
-
-						const buffer = Buffer.from(await res.arrayBuffer());
-						const logs = Docker.parseDaemonBuffer(buffer);
-						return resolve(
-							new Response(logs, { status: data.StatusCode == 0 ? 200 : 400 })
-						);
 					});
 				});
 			});
@@ -106,11 +121,10 @@ function launchsandbox(project: string, request: RequestBody) {
 
 //=============================================================================
 
-// Register the routes for the /grade endpoint.
+/** Register the routes for the /grade endpoint. */
 export default function register(server: Elysia) {
-	console.log(chalk.green("Registering /grade routes."));
+	logger.info("Registering /grade endpoint...");
 
-	// For git repositories
 	server.post("/api/grade/git/:name", async ({ params, request }) => {
 		const project = params.name;
 		const path = `./projects/${project}/index.test.ts`;
@@ -118,12 +132,13 @@ export default function register(server: Elysia) {
 		if (!body.gitURL || !body.branch || !body.commit)
 			return new Response("Missing parameters.", { status: 400 });
 
+		logger.info("Running tests for:", project, "=>", body);
 		try {
 			accessSync(path, constants.F_OK | constants.R_OK);
-			return await launchsandbox(project, body);
-			//return new Response(await launchsandbox(project, body), { status: 200 });
+			return await launchContainer(project, body);
 		} catch (exception) {
 			const error = exception as Error;
+			logger.error(`Exception triggered: ${error.message}`);
 			return new Response(error.message, { status: 500 });
 		}
 	});

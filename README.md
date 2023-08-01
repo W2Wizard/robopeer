@@ -25,6 +25,13 @@ bun install
 
 ## 🚀 Usage 
 
+### Creating a Grading Project
+
+To create a new reference project, use the following command:
+```bash
+bun run new < project-name >
+```
+
 ### 🐳 Docker Setup
 
 > **Note**: The docker image hasn't been configured properly yet to make sure the code isn't actually doing something stupid (deleting files, cd, ...) atm it uses Kornshell just a basic simple attempt but there are no serious measures whatsoever.
