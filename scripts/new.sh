@@ -13,31 +13,57 @@ if [ -d "$dir" ]; then
 fi
 
 
-test_template="
+test_template='
 //=============================================================================
 // W2Wizard, Amsterdam @ 2018-2023
 // See README and LICENSE files for details.
 //=============================================================================
 
-import { describe, expect, it } from \"bun:test\";
+import { beforeAll, describe, expect, it } from "bun:test";
 
 //=============================================================================
 
-describe(\"hello_world\", () => {
-  it(\"output equals\", () => {
-    expect(true).toBe(true);
-  });
-});
-"
+/**
+ * Run a command with arguments and return the output.
+ * @param bin  The command to run.
+ * @param args The arguments to pass to the command.
+ * @returns The output of the command (stdout + stderr).
+ */
+function runWith(bin: string, args: string[]) {
+	const { stdout, stderr } = Bun.spawnSync([bin, ...args], {
+		stderr: "pipe",
+		stdout: "pipe",
+	});
 
-script_template="#!/bin/bash
+	return Buffer.concat([stdout, stderr]).toString();
+}
+
+//=============================================================================
+
+beforeAll(() => {
+	["SIGINT", "SIGTERM", "SIGHUP"].forEach((signal) => {
+		process.on(signal, () => {
+			process.exit(1);
+		});
+	});
+});
+
+describe("hello_world", () => {
+	it("output equals", () => {
+		const output = runWith("/bin/echo", ["Hello, world!"]);
+		expect(output).toBe("Hello, world!\n");
+	});
+});
+'
+
+script_template='#!/bin/bash
 #==============================================================================
 if [ -z "$GIT_URL" ] || [ -z "$GIT_BRANCH" ] || [ -z "$GIT_COMMIT" ]; then
     echo -e "GIT_URL, GIT_BRANCH and GIT_COMMIT must be set"
     exit 1
 fi
 
-ID=$(xxd -l 16 -ps /dev/urandom | tr -d ' \n')
+ID=$(xxd -l 16 -ps /dev/urandom | tr -d " \n")
 ProjectDIR="/tmp/$ID/project"
 ObjectsDIR="/tmp/$ID/objects"
 Home="/home/runner/"
@@ -76,11 +102,11 @@ function run()  {
 #==============================================================================
 set -e
 
-gitCloneCommit();
-build();
-run();
+gitCloneCommit
+build
+run
 
-"
+'
 
 mkdir -p "$dir" && cd "$dir"
 echo "$script_template" > start.sh
