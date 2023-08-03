@@ -12,6 +12,7 @@ The grading process involves comparing the output of the provided git repository
 
 - `200` - All tests passed.
 - `400` - Compilation failed.
+- `408` - Timeout for testing.
 - `500` - Grader failed.
 
 > **Warning**: Grader is currently a work in progress and is not yet suitable for production use.
