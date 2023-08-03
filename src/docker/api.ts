@@ -40,10 +40,15 @@ export namespace Docker {
 			const message = line.subarray(spacePos + 1);
 			const date = line.subarray(0, spacePos).subarray(0, 19);
 			date.set([32], date.indexOf("T"));
+
 			data += `[${date}] ${message}`;
 		}
 
-		return data;
+		return data
+			// Regex away all the color codes.
+			.replace(/\033\[[0-9;]*m|\[\d+m/g, '')
+			.replaceAll("(pass)", "(✅)")
+			.replaceAll("(fail)", "(❌)");
 	}
 
 	/**
