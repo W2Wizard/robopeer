@@ -7,6 +7,7 @@ import fs, { mkdirSync } from "fs";
 import chalk from "chalk";
 
 export enum LogLevel {
+	DEBUG = "DEBG",
 	INFO = "INFO",
 	WARN = "WARN",
 	FAIL = "FAIL",
@@ -47,7 +48,14 @@ class Logger {
 	}
 
 	private format(level: LogLevel, message: string): string {
-		return `[${this.getCurrentTimestamp()}] [${level.toString()}] ${message}`;
+		const emojis = {
+			[LogLevel.DEBUG]: "🐛",
+			[LogLevel.INFO]: "📝",
+			[LogLevel.WARN]: "⚠️",
+			[LogLevel.FAIL]: "❌",
+		};
+
+		return `[${this.getCurrentTimestamp()}] [${level.toString()}] ${emojis[level]} : ${message}`;
 	}
 
 	private writeToConsole(message: string): void {
@@ -70,6 +78,8 @@ class Logger {
 		this.writeToFile(formattedMessage);
 
 		switch (level) {
+			case LogLevel.DEBUG:
+				formattedMessage = chalk.bgMagenta(formattedMessage);
 			case LogLevel.INFO:
 				formattedMessage = chalk.whiteBright(formattedMessage);
 				break;
@@ -98,6 +108,11 @@ class Logger {
 	/** Log an error to the console and the log file. */
 	public error(...args: unknown[]): void {
 		this.write(LogLevel.FAIL, ...args);
+	}
+
+	/** Log a debug message to the console and the log file. */
+	public debug(...args: unknown[]): void {
+		this.write(LogLevel.DEBUG, ...args);
 	}
 }
 

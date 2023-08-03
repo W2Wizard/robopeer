@@ -7,7 +7,7 @@ import { Socket } from "bun";
 import { RawRequest, ResponseParser } from "@/http";
 import Modem from "./modem";
 import { Docker } from "./api";
-import { logger } from "@/main";
+import { log } from "@/main";
 
 interface Wait {
 	exitCode: number;
@@ -32,7 +32,6 @@ export default class Container {
 		this.modem = new Modem();
 		await this.modem.connect();
 
-		logger.info(`Launching container ${this.payload.Image}...`);
 		const create = (modem: Modem, container: Container) =>
 			new Promise<string>((resolve, reject) => {
 				Docker.create(modem, container, async (res) => {

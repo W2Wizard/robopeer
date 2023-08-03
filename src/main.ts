@@ -15,11 +15,11 @@ if (import.meta.main !== (import.meta.path === Bun.main))
 // Entry point
 //=============================================================================
 
-export const logger = new Logger(`./logs`);
-logger.info("Starting server...");
+export const log = new Logger(`./logs`);
+log.info("Starting server...");
 
 const server = new Elysia();
 [registerGrade].forEach((route) => route(server));
 server.listen(Number(Bun.env.PORT ?? 8000), ({ port }) => {
-	logger.info(`Hosted: http://localhost:${port}/`);
+	log.info(`Hosted: http://localhost:${port}/`);
 });

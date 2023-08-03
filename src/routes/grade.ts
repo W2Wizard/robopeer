@@ -3,7 +3,7 @@
 // See README and LICENSE files for details.
 //=============================================================================
 
-import { logger } from "@/main";
+import { log } from "@/main";
 import { Elysia } from "elysia";
 import { accessSync, constants } from "fs";
 import Container from "@/docker/container";
@@ -69,13 +69,11 @@ export function constructContainer(project: string, request: RequestBody) {
  */
 async function launchContainer(project: string, request: RequestBody) {
 	const container = new Container(constructContainer(project, request));
-	logger.info("Container constructed:", container.payload);
 	const launchErr = await container.launch();
 	if (launchErr) {
 		return new Response(launchErr.message, { status: 500 });
 	}
 
-	logger.info("Container launched:", container.id);
 	const [wait, error] = await container.wait();
 	if (error) return new Response(error.message, { status: 500 });
 	const { exitCode, logs } = wait!;
@@ -97,10 +95,10 @@ async function launchContainer(project: string, request: RequestBody) {
 			break;
 		}
 		default:
-			throw new Error(`Unkown code: ${exitCode}: ${logs}`)
+			throw new Error(`Unkown code: ${exitCode}: ${logs}`);
 	}
+	log.info("Container", container.id, "exited with:", exitCode);
 	await container.remove();
-	logger.info("Container removed.");
 	return response;
 }
 
@@ -108,24 +106,32 @@ async function launchContainer(project: string, request: RequestBody) {
 
 /** Register the routes for the /grade endpoint. */
 export default function register(server: Elysia) {
-	logger.info("Registering /grade endpoint...");
+	log.debug("Registering /grade endpoint...");
 
 	server.post("/api/grade/git/:name", async ({ params, request }) => {
+		let body: RequestBody;
 		const project = params.name;
 		const path = `./projects/${project}/index.test.ts`;
-
-		// BUG(W2): Empty body is not handled correctly.
-		const body: RequestBody = await request.json();
-		if (!body.gitURL || !body.branch || !body.commit)
-			return new Response("Missing parameters.", { status: 400 });
+		log.info("Received request for:", project);
 
 		try {
-			logger.info("Running tests for:", project, "=>", body);
+			body = await request.json();
+			if (!body.gitURL || !body.branch || !body.commit) {
+				log.warn("Missing parameters:", body);
+				return new Response("Missing parameters", { status: 400 });
+			}
+		} catch (exception) {
+			log.warn("Invalid Body received");
+			return new Response("Invalid JSON.", { status: 400 });
+		}
+
+		try {
+			log.info("Running tests for:", project, "=>", body);
 			accessSync(path, constants.F_OK | constants.R_OK);
 			return await launchContainer(project, body);
 		} catch (exception) {
 			const error = exception as Error;
-			logger.error(`Exception triggered: ${error.message}`);
+			log.error(`Exception triggered: ${error.message}`);
 			return new Response(error.message, { status: 500 });
 		}
 	});

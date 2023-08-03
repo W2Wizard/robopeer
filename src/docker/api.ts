@@ -36,7 +36,7 @@ export namespace Docker {
 			const spacePos = line.indexOf(" ");
 
 			// Some formatting of the timestamp.
-			// WARNING(W2): Will cause bugs if we request logs without timestamps.
+			// BUG(W2): Will cause bugs if we request logs without timestamps.
 			const message = line.subarray(spacePos + 1);
 			const date = line.subarray(0, spacePos).subarray(0, 19);
 			date.set([32], date.indexOf("T"));
