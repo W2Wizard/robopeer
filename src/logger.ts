@@ -7,7 +7,7 @@ import fs, { mkdirSync } from "fs";
 import chalk from "chalk";
 
 export enum LogLevel {
-	DEBUG = "DEBG",
+	DEBUG = "DEBUG",
 	INFO = "INFO",
 	WARN = "WARN",
 	FAIL = "FAIL",
