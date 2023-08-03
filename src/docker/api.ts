@@ -3,17 +3,12 @@
 // See README and LICENSE files for details.
 //=============================================================================
 
-import { Socket } from "bun";
-import { RawRequest, ResponseParser } from "@/http";
+import Container from "./container";
+import { RawRequest } from "@/http";
+import Modem, { ModemCB } from "./modem";
 
 //=============================================================================
 
-/** Function protopype used when a response is received. */
-type ModemCB = (res: Response) => void | Promise<void>;
-
-//=============================================================================
-
-/** Docker API. */
 export namespace Docker {
 	/**
 	 * Parse the response buffer from the docker daemon.
@@ -30,7 +25,7 @@ export namespace Docker {
 	 * @note Each line is always ending with a newline character.
 	 * @see https://ahmet.im/blog/docker-logs-api-binary-format-explained/
 	 */
-	export function parseResponseBuffer(inBuff: ArrayBuffer): string {
+	export function parseLogBuffer(inBuff: ArrayBuffer): string {
 		let data = "";
 		let offset = 0;
 		const buffer = Buffer.from(inBuff);
@@ -38,13 +33,13 @@ export namespace Docker {
 		while (offset < buffer.length) {
 			const length = buffer.readUInt32BE((offset += 4));
 			const line = buffer.subarray((offset += 4), (offset += length));
-			const spacePos = line.indexOf(' ');
+			const spacePos = line.indexOf(" ");
 
 			// Some formatting of the timestamp.
 			// WARNING(W2): Will cause bugs if we request logs without timestamps.
 			const message = line.subarray(spacePos + 1);
 			const date = line.subarray(0, spacePos).subarray(0, 19);
-			date.set([32], date.indexOf('T'));
+			date.set([32], date.indexOf("T"));
 			data += `[${date}] ${message}`;
 		}
 
@@ -52,87 +47,11 @@ export namespace Docker {
 	}
 
 	/**
-	 * A docker socket lets you communicate with the docker daemon directly.
-	 * @note We won't bother with Windows support for now or ever.
-	 *
-	 * @see https://docs.docker.com/engine/api/v1.43/
-	 */
-	export class Modem {
-		public endpoint: string;
-
-		private socket?: Socket;
-		private callbacks: ModemCB[] = [];
-
-		constructor(version: string = "v1.43") {
-			this.endpoint = `/${version}`;
-		}
-
-		//= Public =//
-
-		public send(request: RawRequest | BufferSource | string, cb?: ModemCB) {
-			if (!this.socket) return 0;
-
-			if (cb) this.callbacks.push(cb);
-			if (request instanceof RawRequest)
-				return this.socket.write(request.toString());
-			return this.socket.write(request);
-		}
-
-		/** Connect to the docker daemon. */
-		public async connect() {
-			const parser = new ResponseParser();
-			const appendOrResolve = async (buffer: Buffer) => {
-				parser.append(buffer);
-
-				if (parser.isComplete) {
-					const cb = this.callbacks.shift();
-					if (cb) await cb(parser.toResponse());
-					parser.reset();
-					return;
-				}
-			};
-
-			try {
-				this.socket = await Bun.connect({
-					unix: "/var/run/docker.sock",
-					socket: {
-						error(_, error) {
-							throw error;
-						},
-						connectError(_, error) {
-							throw error;
-						},
-						data(_, data) {
-							appendOrResolve(data);
-						},
-					},
-				});
-
-				return true;
-			} catch (error) {
-				return false;
-			}
-		}
-
-		/** Disconnect from the docker daemon. */
-		public disconnect() {
-			if (!this.socket) throw new Error("Not connected to docker daemon.");
-			this.socket.flush();
-			this.socket.end();
-		}
-
-		/** Returns true if connected to the docker daemon. */
-		public get isConnected() {
-			return this.socket != undefined;
-		}
-	}
-
-	/**
 	 * List all containers.
 	 * @returns A list of containers currently running as JSON.
 	 * @see https://docs.docker.com/engine/api/v1.43/#operation/ContainerList
 	 */
-	export function listContainers(modem: Docker.Modem, cb?: ModemCB) {
+	export function list(modem: Modem, cb?: ModemCB) {
 		if (!modem.isConnected) throw new Error("Not connected to docker daemon.");
 
 		const request = new RawRequest(`${modem.endpoint}/containers/json`, {
@@ -151,14 +70,10 @@ export namespace Docker {
 	 *
 	 * @see https://docs.docker.com/engine/api/v1.43/#operation/ContainerCreate
 	 */
-	export function createContainer(
-		modem: Docker.Modem,
-		container: any,
-		cb?: ModemCB
-	) {
+	export function create(modem: Modem, container: Container, cb?: ModemCB) {
 		if (!modem.isConnected) throw new Error("Not connected to docker daemon.");
 
-		const payload = JSON.stringify(container);
+		const payload = JSON.stringify(container.payload);
 		const request = new RawRequest(`${modem.endpoint}/containers/create`, {
 			method: "POST",
 			headers: {
@@ -180,11 +95,7 @@ export namespace Docker {
 	 *
 	 * @see https://docs.docker.com/engine/api/v1.43/#operation/ContainerStart
 	 */
-	export function startContainer(
-		modem: Docker.Modem,
-		id: string,
-		cb?: ModemCB
-	) {
+	export function start(modem: Modem, id: string, cb?: ModemCB) {
 		if (!modem.isConnected) throw new Error("Not connected to docker daemon.");
 
 		const request = new RawRequest(`${modem.endpoint}/containers/${id}/start`, {
@@ -203,7 +114,7 @@ export namespace Docker {
 	 *
 	 * @see https://docs.docker.com/engine/api/v1.43/#operation/ContainerStop
 	 */
-	export function stopContainer(modem: Docker.Modem, id: string, cb?: ModemCB) {
+	export function stop(modem: Modem, id: string, cb?: ModemCB) {
 		if (!modem.isConnected) throw new Error("Not connected to docker daemon.");
 
 		const request = new RawRequest(`${modem.endpoint}/containers/${id}/stop`, {
@@ -223,7 +134,7 @@ export namespace Docker {
 	 *
 	 * @see https://docs.docker.com/engine/api/v1.43/#operation/ContainerWait
 	 */
-	export function waitContainer(modem: Docker.Modem, id: string, cb?: ModemCB) {
+	export function wait(modem: Modem, id: string, cb?: ModemCB) {
 		if (!modem.isConnected) throw new Error("Not connected to docker daemon.");
 
 		const request = new RawRequest(`${modem.endpoint}/containers/${id}/wait`, {
@@ -243,7 +154,7 @@ export namespace Docker {
 	 * @see https://docs.docker.com/engine/api/v1.43/#operation/ContainerLogs
 	 */
 	export function getLogs(
-		modem: Docker.Modem,
+		modem: Modem,
 		id: string,
 		params: URLSearchParams,
 		cb?: ModemCB
@@ -257,6 +168,25 @@ export namespace Docker {
 				Host: "localhost",
 				Accept: "application/json",
 			},
+		});
+
+		modem.send(request, cb);
+	}
+
+	/**
+	 * Remove a container.
+	 *
+	 * @param id The id of the container to remove.
+	 * @param cb A callback that will be called when the response is received.
+	 *
+	 * @see https://docs.docker.com/engine/api/v1.43/#operation/ContainerDelete
+	 */
+	export function remove(modem: Modem, id: string, cb?: ModemCB) {
+		if (!modem.isConnected) throw new Error("Not connected to docker daemon.");
+
+		const request = new RawRequest(`${modem.endpoint}/containers/${id}`, {
+			method: "DELETE",
+			headers: { Host: "localhost" },
 		});
 
 		modem.send(request, cb);

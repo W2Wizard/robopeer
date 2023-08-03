@@ -4,7 +4,6 @@
 //=============================================================================
 
 import { Elysia } from "elysia";
-import { Docker } from "./docker/docker";
 import registerGrade from "./routes/grade";
 import Logger from "./logger";
 
@@ -21,14 +20,6 @@ logger.info("Starting server...");
 
 const server = new Elysia();
 [registerGrade].forEach((route) => route(server));
-
-export const modem = new Docker.Modem();
-if (await modem.connect()) {
-	logger.info("Connected to docker daemon.");
-
-	server.listen(Number(Bun.env.PORT ?? 8000), ({ port }) => {
-		logger.info(`Hosted: http://localhost:${port}/`);
-	});
-} else {
-	logger.error("Failed to connect to docker daemon.");
-}
+server.listen(Number(Bun.env.PORT ?? 8000), ({ port }) => {
+	logger.info(`Hosted: http://localhost:${port}/`);
+});

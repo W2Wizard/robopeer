@@ -3,11 +3,10 @@
 // See README and LICENSE files for details.
 //=============================================================================
 
-import chalk from "chalk";
-import { logger, modem } from "@/main";
+import { logger } from "@/main";
 import { Elysia } from "elysia";
 import { accessSync, constants } from "fs";
-import { Docker } from "@/docker/docker";
+import Container from "@/docker/container";
 
 interface RequestBody {
 	gitURL: string;
@@ -31,7 +30,7 @@ enum ExitCode {
  * @param request The request to get the code from.
  * @returns The container object.
  */
-function constructContainer(project: string, request: RequestBody) {
+export function constructContainer(project: string, request: RequestBody) {
 	return {
 		Image: "w2wizard/runner",
 		NetworkDisabled: false,
@@ -68,57 +67,41 @@ function constructContainer(project: string, request: RequestBody) {
  * @param request The incoming request.
  * @returns Response with the stdout or stderr of the container.
  */
-function launchContainer(project: string, request: RequestBody) {
-	const containerPayload = constructContainer(project, request);
+async function launchContainer(project: string, request: RequestBody) {
+	const container = new Container(constructContainer(project, request));
+	logger.info("Container constructed:", container.payload);
+	const launchErr = await container.launch();
+	if (launchErr) {
+		return new Response(launchErr.message, { status: 500 });
+	}
 
-	// BUG(W2): This will fail after too many subsequent requests.
-	// As it's reusing the same container id.
-	return new Promise<Response>((resolve, reject) => {
-		Docker.createContainer(modem, containerPayload, async (res) => {
-			if (!res.ok) return reject(await res.json());
+	logger.info("Container launched:", container.id);
+	const [wait, error] = await container.wait();
+	if (error) return new Response(error.message, { status: 500 });
+	const { exitCode, logs } = wait!;
 
-			const container = (await res.json()) as { Id: string };
-			Docker.startContainer(modem, container.Id, async (res) => {
-				if (!res.ok) return reject(await res.json());
-				const id = container.Id;
-				const queryLogParams = new URLSearchParams({
-					stdout: "true",
-					stderr: "true",
-					timestamps: "true",
-				});
-
-				Docker.waitContainer(modem, id, async (res) => {
-					if (!res.ok) return reject(await res.json());
-
-					const data = (await res.json()) as { StatusCode: ExitCode };
-					Docker.getLogs(modem, id, queryLogParams, async (res) => {
-						if (!res.ok) return reject(await res.json());
-
-						logger.info(`${id.slice(0, 12)}: exited: ${data.StatusCode}.`);
-						const logs = Docker.parseResponseBuffer(await res.arrayBuffer());
-
-						switch (data.StatusCode) {
-							case ExitCode.Success:
-								return resolve(new Response(logs, { status: 200 }));
-							case ExitCode.NotFound:
-							case ExitCode.MinorError:
-							case ExitCode.MajorError:
-								return resolve(new Response(logs, { status: 400 }));
-							case ExitCode.Timeout: {
-								const body = `Grader timed out: ${logs}`;
-								return resolve(new Response(body, { status: 408 }));
-							}
-							default: { // Blame us for everything else.
-								return reject(
-									new Error(`Unkown code: ${data.StatusCode}: ${logs}`)
-								);
-							}
-						}
-					});
-				});
-			});
-		});
-	});
+	let response: Response;
+	switch (exitCode as ExitCode) {
+		case ExitCode.Success: {
+			response = new Response(logs, { status: 200 });
+			break;
+		}
+		case ExitCode.NotFound:
+		case ExitCode.MinorError:
+		case ExitCode.MajorError: {
+			response = new Response(logs, { status: 400 });
+			break;
+		}
+		case ExitCode.Timeout: {
+			response = new Response(logs, { status: 408 });
+			break;
+		}
+		default:
+			throw new Error(`Unkown code: ${exitCode}: ${logs}`)
+	}
+	await container.remove();
+	logger.info("Container removed.");
+	return response;
 }
 
 //=============================================================================
