@@ -3,8 +3,8 @@
 // See README and LICENSE files for details.
 //=============================================================================
 
-import fs, { mkdirSync } from "fs";
 import chalk from "chalk";
+import fs, { mkdirSync } from "fs";
 
 export enum LogLevel {
 	DEBUG = "DEBUG",

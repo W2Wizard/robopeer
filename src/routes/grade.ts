@@ -126,8 +126,13 @@ export default function register(server: Elysia) {
 		}
 
 		try {
-			log.info("Running tests for:", project, "=>", body);
 			accessSync(path, constants.F_OK | constants.R_OK);
+		} catch (error) {
+			return new Response("Project not found.", { status: 404 });
+		}
+
+		try {
+			log.info("Running tests for:", project, "=>", body);
 			return await launchContainer(project, body);
 		} catch (exception) {
 			const error = exception as Error;

@@ -3,11 +3,8 @@
 // See README and LICENSE files for details.
 //=============================================================================
 
-import { Socket } from "bun";
-import { RawRequest, ResponseParser } from "@/http";
 import Modem from "./modem";
 import { Docker } from "./api";
-import { log } from "@/main";
 
 interface Wait {
 	exitCode: number;

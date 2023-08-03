@@ -3,9 +3,9 @@
 // See README and LICENSE files for details.
 //=============================================================================
 
+import Logger from "./logger";
 import { Elysia } from "elysia";
 import registerGrade from "./routes/grade";
-import Logger from "./logger";
 
 //=============================================================================
 
