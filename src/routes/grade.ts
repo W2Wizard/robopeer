@@ -8,7 +8,12 @@ import { Elysia } from "elysia";
 import { accessSync, constants } from "fs";
 import Container from "@/docker/container";
 
-interface RequestBody {
+interface ProjectConfig {
+	enabled: boolean;
+	timeout: number;
+}
+
+interface Body {
 	gitURL: string;
 	branch: string;
 	commit: string;
@@ -30,7 +35,7 @@ enum ExitCode {
  * @param request The request to get the code from.
  * @returns The container object.
  */
-export function constructContainer(project: string, request: RequestBody) {
+export function constructContainer(project: string, request: Body) {
 	return {
 		Image: "w2wizard/runner",
 		NetworkDisabled: false,
@@ -67,18 +72,19 @@ export function constructContainer(project: string, request: RequestBody) {
  * @param request The incoming request.
  * @returns Response with the stdout or stderr of the container.
  */
-async function launchContainer(project: string, request: RequestBody) {
-	const container = new Container(constructContainer(project, request));
-	const launchErr = await container.launch();
-	if (launchErr) {
-		return new Response(launchErr.message, { status: 500 });
+async function launchContainer(dir: string, project: string, request: Body) {
+	const config = (await Bun.file(`${dir}/config.json`).json()) as ProjectConfig;
+	if (!config.enabled) {
+		log.warn("Project disabled:", project);
+		return new Response("Project is currently disabled.", { status: 410 });
 	}
 
-	const [wait, error] = await container.wait();
-	if (error) return new Response(error.message, { status: 500 });
-	const { exitCode, logs } = wait!;
+	const container = await new Container(
+		constructContainer(project, request)
+	).launch();
 
 	let response: Response;
+	const { exitCode, logs } = await container.wait();
 	switch (exitCode as ExitCode) {
 		case ExitCode.Success: {
 			response = new Response(logs, { status: 200 });
@@ -109,10 +115,18 @@ export default function register(server: Elysia) {
 	log.debug("Registering /grade endpoint...");
 
 	server.post("/api/grade/git/:name", async ({ params, request }) => {
-		let body: RequestBody;
+		let body: Body;
 		const project = params.name;
-		const path = `./projects/${project}/index.test.ts`;
+		const dir = `./projects/${project}`;
+		const testFile = `${dir}/index.test.ts`;
 		log.info("Received request for:", project);
+
+		try {
+			accessSync(testFile, constants.F_OK | constants.R_OK);
+		} catch (error) {
+			log.warn("Project not found:", project);
+			return new Response("Project not found.", { status: 404 });
+		}
 
 		try {
 			body = await request.json();
@@ -126,14 +140,8 @@ export default function register(server: Elysia) {
 		}
 
 		try {
-			accessSync(path, constants.F_OK | constants.R_OK);
-		} catch (error) {
-			return new Response("Project not found.", { status: 404 });
-		}
-
-		try {
 			log.info("Running tests for:", project, "=>", body);
-			return await launchContainer(project, body);
+			return await launchContainer(dir, project, body);
 		} catch (exception) {
 			const error = exception as Error;
 			log.error(`Exception triggered: ${error.message}`);

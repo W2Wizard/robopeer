@@ -6,11 +6,6 @@
 import Modem from "./modem";
 import { Docker } from "./api";
 
-interface Wait {
-	exitCode: number;
-	logs: string;
-}
-
 //=============================================================================
 
 /** A container to run docker commands in. */
@@ -32,7 +27,7 @@ export default class Container {
 		const create = (modem: Modem, container: Container) =>
 			new Promise<string>((resolve, reject) => {
 				Docker.create(modem, container, async (res) => {
-					if (!res.ok) return reject(await res.json());
+					if (!res.ok) return reject(Error(await res.text()));
 
 					const { Id } = (await res.json()) as { Id: string };
 					return resolve(Id);
@@ -42,18 +37,14 @@ export default class Container {
 		const start = (modem: Modem, id: string) =>
 			new Promise<string>((resolve, reject) => {
 				Docker.start(modem, id, async (res) => {
-					if (!res.ok) return reject(await res.json());
+					if (!res.ok) return reject(Error(await res.text()));
 					return resolve(id);
 				});
 			});
 
-		try {
-			this.id = await create(this.modem, this);
-			await start(this.modem, this.id);
-			return null;
-		} catch (error) {
-			return error as Error;
-		}
+		this.id = await create(this.modem, this);
+		await start(this.modem, this.id);
+		return this;
 	}
 
 	/**
@@ -61,16 +52,16 @@ export default class Container {
 	 *
 	 * @returns The logs and exit code of the container.
 	 */
-	public async wait(): Promise<[Wait | null, Error | null]> {
+	public async wait() {
 		if (!this.modem || !this.id) {
-			return [null, new Error("Container not launched.")];
+			throw new Error("Container not launched.");
 		}
 
 		// Promise for the exit code.
 		const waitCon = (modem: Modem, id: string) =>
 			new Promise<number>((resolve, reject) => {
 				Docker.wait(modem, id, async (res) => {
-					if (!res.ok) return reject(await res.json());
+					if (!res.ok) return reject(Error(await res.text()));
 
 					const { StatusCode } = (await res.json()) as any;
 					return resolve(StatusCode);
@@ -87,19 +78,14 @@ export default class Container {
 				});
 
 				Docker.getLogs(modem, id, params, async (res) => {
-					if (!res.ok) return reject(await res.json());
+					if (!res.ok) return reject(Error(await res.text()));
 					return resolve(Docker.parseLogBuffer(await res.arrayBuffer()));
 				});
 			});
 
-		try {
-			const exitCode = await waitCon(this.modem, this.id);
-			const logs = await logsCon(this.modem, this.id);
-
-			return [{ exitCode, logs }, null];
-		} catch (error) {
-			return [null, error as Error];
-		}
+		const exitCode = await waitCon(this.modem, this.id);
+		const logs = await logsCon(this.modem, this.id);
+		return { exitCode, logs };
 	}
 
 	public async remove() {
@@ -108,15 +94,11 @@ export default class Container {
 		const remove = (modem: Modem, id: string) =>
 			new Promise<void>((resolve, reject) => {
 				Docker.remove(modem, id, async (res) => {
-					if (!res.ok) return reject();
+					if (!res.ok) return reject(Error(await res.text()));
 					return resolve();
 				});
 			});
 
 		await remove(this.modem, this.id!);
 	}
-
-	//= Private =//
-
-	private async connect() {}
 }
