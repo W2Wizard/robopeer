@@ -4,7 +4,7 @@
 //=============================================================================
 
 import { sleep } from "bun";
-import { dlopen, FFIType, ptr } from "bun:ffi";
+import { dlopen, FFIType, ptr, toArrayBuffer } from "bun:ffi";
 import { describe, expect, it, beforeAll, afterAll } from "bun:test";
 
 /**
@@ -24,6 +24,10 @@ import { describe, expect, it, beforeAll, afterAll } from "bun:test";
 // TODO: Come up with a neater way to generate the type definitions?
 // NOTE(W2): Convert the static library to a shared library for dlopen to work.
 const { symbols, close } = dlopen("libft.so", {
+	ft_strdup: {
+		returns: FFIType.ptr,
+		args: [FFIType.ptr],
+	},
 	ft_strlen: {
 		returns: FFIType.i32,
 		args: [FFIType.ptr],
@@ -129,9 +133,24 @@ describe("makefile", () => {
 		const text = await makefile.text();
 		const requiredFlags = ["-Wall", "-Wextra", "-Werror"];
 
-		await sleep(1000);
-
 		expect(requiredFlags.every((flag) => text.includes(flag))).toBe(true);
+	});
+});
+
+// strdup
+//=============================================================================
+describe("strdup", () => {
+	it("duplicates a string", () => {
+		const sample = "Hello, world!";
+		const ptrSample = ptr(Buffer.from(`${sample}\0`, "utf8"));
+		const result = toArrayBuffer(symbols.ft_strdup(ptrSample), 0, sample.length);
+		const output = Buffer.from(result).toString("utf8");
+		expect(output).toBe(sample);
+	});
+
+	it("returns null if the string is empty", () => {
+		const emptyStr = Buffer.from(`\0`, "utf8");
+		expect(symbols.ft_strdup(ptr(emptyStr))).toBe(null);
 	});
 });
 
@@ -281,7 +300,7 @@ describe("memcpy", () => {
 
 // ft_memmove
 //=============================================================================
-describe("ft_memmove", () => {
+describe("memmove", () => {
   it("copies overlapping data from source to destination", () => {
     const source = Buffer.from("Hello, world!\0", "utf8");
     const destination = Buffer.alloc(source.length);

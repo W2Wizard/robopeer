@@ -23,6 +23,8 @@ import { beforeAll, describe, expect, it } from "bun:test";
 
 //=============================================================================
 
+// NOTE(W2): Please read: https://bun.sh/docs/api/ffi before using ffi.
+
 /**
  * Run a command with arguments and return the output.
  * @param bin  The command to run.
@@ -85,7 +87,7 @@ function gitCloneCommit() {
 # Build the project
 function build() {
     echo "[+] Building ..."
-    timeout 25s make -C $ProjectDIR -j4
+    timeout 1m make -C $ProjectDIR -j4
 
     # Other steps ...
 

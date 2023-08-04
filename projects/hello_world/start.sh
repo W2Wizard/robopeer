@@ -16,7 +16,7 @@ Home="/home/runner/"
 # Fetch the project
 function gitCloneCommit() {
     echo "[+] Cloning $GIT_URL"
-    git clone $GIT_URL $ProjectDIR -b $GIT_BRANCH --recurse-submodules --quiet
+    timeout 10s git clone $GIT_URL $ProjectDIR -b $GIT_BRANCH --recurse-submodules --quiet
     cd $ProjectDIR
 
     echo "[+] Switching to $GIT_COMMIT"
@@ -27,7 +27,7 @@ function gitCloneCommit() {
 # Build the project
 function build() {
     echo "[+] Building ..."
-    timeout 25s make -C $ProjectDIR -j4
+    timeout 1m make -C $ProjectDIR -j4
 
     # Other steps ...
 
