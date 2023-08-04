@@ -32,8 +32,7 @@ export default class Modem {
 
 			if (parser.isComplete) {
 				const response = parser.toResponse();
-				if (this.callback)
-					await this.callback(response);
+				if (this.callback) await this.callback(response);
 				parser.reset();
 			}
 		};

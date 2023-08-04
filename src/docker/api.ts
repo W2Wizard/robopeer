@@ -44,11 +44,13 @@ export namespace Docker {
 			data += `[${date}] ${message}`;
 		}
 
-		return data
-			// Regex away all the color codes.
-			.replace(/\033\[[0-9;]*m|\[\d+m/g, '')
-			.replaceAll("(pass)", "(✅)")
-			.replaceAll("(fail)", "(❌)");
+		return (
+			data
+				// Regex away all the color codes.
+				.replace(/\033\[[0-9;]*m|\[\d+m/g, "")
+				.replaceAll("(pass)", "(✅)")
+				.replaceAll("(fail)", "(❌)")
+		);
 	}
 
 	/**

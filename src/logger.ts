@@ -55,7 +55,9 @@ class Logger {
 			[LogLevel.FAIL]: "❌",
 		};
 
-		return `[${this.getCurrentTimestamp()}] [${level.toString()}] ${emojis[level]} : ${message}`;
+		return `[${this.getCurrentTimestamp()}] [${level.toString()}] ${
+			emojis[level]
+		} : ${message}`;
 	}
 
 	private writeToConsole(message: string): void {
