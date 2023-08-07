@@ -10,6 +10,7 @@ export type ModemCB = (res: Response) => void | Promise<void>;
 
 //=============================================================================
 
+/** A class that represents a connection to the docker daemon. */
 export default class Modem {
 	public endpoint = "http://localhost/";
 	private socket: Socket | null = null;

@@ -6,6 +6,7 @@
 import Logger from "./logger";
 import { Elysia } from "elysia";
 import registerGrade from "./routes/grade";
+import registerStats from "./routes/stats";
 
 //=============================================================================
 
@@ -19,7 +20,13 @@ export const log = new Logger(`./logs`);
 log.info("Starting server...");
 
 const server = new Elysia();
-[registerGrade].forEach((route) => route(server));
+[registerGrade, registerStats].forEach((route) => route(server));
 server.listen(Number(Bun.env.PORT ?? 8000), ({ port }) => {
 	log.info(`Hosted: http://localhost:${port}/`);
+});
+
+// TODO: Fetch all the containers and start killing them.
+process.on("SIGINT", () => {
+	log.info("Shutting down...");
+	server.stop();
 });

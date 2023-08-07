@@ -4,10 +4,13 @@
   "description": "A code grading server",
   "module": "./src/main.ts",
   "scripts": {
-		"new": "/bin/bash ./scripts/new.sh",
+    "new": "/bin/bash ./scripts/new.sh",
     "start": "bun run ./src/main.ts",
     "build": "bun build ./src/main.ts --compile --outfile grader"
   },
+	"directories": {
+		"src": "src"
+	},
   "devDependencies": {
     "bun-types": "^0.7.1"
   },
@@ -17,7 +20,7 @@
   "type": "module",
   "dependencies": {
     "@elysiajs/fn": "^0.5.2",
-    "@elysiajs/static": "^0.5.3",
+    "@elysiajs/static": "^0.6.0",
     "chalk": "^5.3.0",
     "elysia": "^0.5.24",
     "http-parser-js": "^0.5.8"
