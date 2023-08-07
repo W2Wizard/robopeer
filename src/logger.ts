@@ -114,7 +114,8 @@ class Logger {
 
 	/** Log a debug message to the console and the log file. */
 	public debug(...args: unknown[]): void {
-		this.write(LogLevel.DEBUG, ...args);
+		if (process.env.NODE_ENV !== "production")
+			this.write(LogLevel.DEBUG, ...args);
 	}
 }
 

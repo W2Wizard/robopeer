@@ -13,8 +13,8 @@ timeout --kill-after=$TIMEOUT $TIMEOUT /bin/bash /app/start.sh
 
 exitCode=$?
 if [ $exitCode -ne 0 ]; then
-    echo -e "[+] Timeout or killed by signal: $exitCode"
+    echo -e "[+] Failed: $exitCode"
 else
-    echo -e "[+] Exit code: $exitCode"
+    echo -e "[+] Success"
 fi
 exit $exitCode

@@ -109,7 +109,7 @@ run
 config_template='
 {
 	"enabled": true,
-	"timeout": 1000
+	"timeout": 25
 }
 '
 
