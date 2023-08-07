@@ -60,10 +60,6 @@ describe("hello_world", () => {
 
 script_template='#!/bin/bash
 #==============================================================================
-if [ -z "$GIT_URL" ] || [ -z "$GIT_BRANCH" ] || [ -z "$GIT_COMMIT" ]; then
-    echo -e "GIT_URL, GIT_BRANCH and GIT_COMMIT must be set"
-    exit 1
-fi
 
 ID=$(xxd -l 16 -ps /dev/urandom | tr -d " \n")
 ProjectDIR="/tmp/$ID/project"

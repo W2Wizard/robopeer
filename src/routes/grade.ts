@@ -8,7 +8,7 @@ import { Elysia } from "elysia";
 import { accessSync, constants } from "fs";
 import Container from "@/docker/container";
 
-interface ProjectConfig {
+interface Config {
 	enabled: boolean;
 	timeout: number;
 }
@@ -23,6 +23,7 @@ enum ExitCode {
 	Success = 0,
 	MinorError = 1,
 	MajorError = 2,
+	Killed = 137, // SIGKILL
 	Timeout = 124, // NOTE(W2): Requires coreutils from GNU.
 	NotFound = 128,
 }
@@ -35,7 +36,11 @@ enum ExitCode {
  * @param request The request to get the code from.
  * @returns The container object.
  */
-export function constructContainer(project: string, request: Body) {
+export function constructContainer(
+	project: string,
+	request: Body,
+	config: Config
+) {
 	return {
 		Image: "w2wizard/runner",
 		NetworkDisabled: false,
@@ -45,8 +50,10 @@ export function constructContainer(project: string, request: Body) {
 		OpenStdin: false,
 		Privileged: false,
 		Tty: false,
-		StopTimeout: 10, // ~10 seconds
-		StopSignal: "SIGTERM",
+		// Thank you docker for wasting my time.
+		// See: https://github.com/moby/moby/issues/1905
+		//StopTimeout: config.timeout,
+		//StopSignal: "SIGTERM",
 		HostConfig: {
 			AutoRemove: false,
 			Binds: [
@@ -62,6 +69,7 @@ export function constructContainer(project: string, request: Body) {
 			`GIT_URL=${request.gitURL}`,
 			`GIT_BRANCH=${request.branch}`,
 			`GIT_COMMIT=${request.commit}`,
+			`TIMEOUT=${config.timeout}`,
 		],
 	};
 }
@@ -73,14 +81,14 @@ export function constructContainer(project: string, request: Body) {
  * @returns Response with the stdout or stderr of the container.
  */
 async function launchContainer(dir: string, project: string, request: Body) {
-	const config = (await Bun.file(`${dir}/config.json`).json()) as ProjectConfig;
+	const config = (await Bun.file(`${dir}/config.json`).json()) as Config;
 	if (!config.enabled) {
 		log.warn("Project disabled:", project);
 		return new Response("Project is currently disabled.", { status: 410 });
 	}
 
 	const container = await new Container(
-		constructContainer(project, request)
+		constructContainer(project, request, config)
 	).launch();
 
 	let response: Response;
@@ -90,6 +98,7 @@ async function launchContainer(dir: string, project: string, request: Body) {
 			response = new Response(logs, { status: 200 });
 			break;
 		}
+		case ExitCode.Killed:
 		case ExitCode.NotFound:
 		case ExitCode.MinorError:
 		case ExitCode.MajorError: {

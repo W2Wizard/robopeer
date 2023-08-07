@@ -260,14 +260,12 @@ describe("strlen", () => {
 //=============================================================================
 describe("memset", () => {
   it("set characters to a value", () => {
-    const size = 10;
-    const value = 42;
+		const size = 42;
+    const value = 42; // *
     const buffer = Buffer.alloc(size);
-    const ptrBuffer = ptr(buffer);
-    symbols.ft_memset(ptrBuffer, value, size);
-    for (const byte of buffer) {
-      expect(byte).toBe(value);
-    }
+
+    symbols.ft_memset(ptr(buffer), value, size);
+		buffer.forEach((byte) => expect(byte).toBe(value));
   });
 });
 
@@ -277,11 +275,9 @@ describe("bzero", () => {
   it("zeroes out a buffer", () => {
     const size = 10;
     const buffer = Buffer.alloc(size, 42);
-    const ptrBuffer = ptr(buffer);
-    symbols.ft_bzero(ptrBuffer, size);
-    for (const byte of buffer) {
-      expect(byte).toBe(0);
-    }
+
+    symbols.ft_bzero(ptr(buffer), size);
+		buffer.forEach((byte) => expect(byte).toBe(0));
   });
 });
 
@@ -289,11 +285,10 @@ describe("bzero", () => {
 //=============================================================================
 describe("memcpy", () => {
   it("copies data from source to destination", () => {
-    const source = Buffer.from("Hello, world!\0", "utf8");
+		const source = Buffer.from("Hello, world!\0");
     const destination = Buffer.alloc(source.length);
-    const ptrSource = ptr(source);
-    const ptrDestination = ptr(destination);
-    symbols.ft_memcpy(ptrDestination, ptrSource, source.length);
+
+    symbols.ft_memcpy(ptr(destination), ptr(source), source.length);
     expect(destination.toString("utf8")).toBe(source.toString("utf8"));
   });
 });
@@ -302,11 +297,10 @@ describe("memcpy", () => {
 //=============================================================================
 describe("memmove", () => {
   it("copies overlapping data from source to destination", () => {
-    const source = Buffer.from("Hello, world!\0", "utf8");
+    const source = Buffer.from("Hello, world!\0");
     const destination = Buffer.alloc(source.length);
-    const ptrSource = ptr(source);
-    const ptrDestination = ptr(destination);
-    symbols.ft_memmove(ptrDestination, ptrSource, source.length);
+
+    symbols.ft_memmove(ptr(source), ptr(destination), source.length);
     expect(destination.toString("utf8")).toBe(source.toString("utf8"));
   });
 });

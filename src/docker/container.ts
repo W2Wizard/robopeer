@@ -20,6 +20,7 @@ export default class Container {
 
 	//= Public =//
 
+	/** Launch the container. */
 	public async launch() {
 		this.modem = new Modem();
 		await this.modem.connect();
@@ -88,6 +89,7 @@ export default class Container {
 		return { exitCode, logs };
 	}
 
+	/** Remove the container. */
 	public async remove() {
 		if (!this.modem) throw new Error("Container not launched.");
 
@@ -100,5 +102,6 @@ export default class Container {
 			});
 
 		await remove(this.modem, this.id!);
+		this.modem.disconnect();
 	}
 }

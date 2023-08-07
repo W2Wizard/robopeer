@@ -56,6 +56,13 @@ export default class Modem {
 		});
 	}
 
+	/** Disconnect from the docker daemon. */
+	public disconnect() {
+		if (!this.socket) throw new Error("Not connected to docker daemon.");
+		this.socket.end();
+		this.socket = null;
+	}
+
 	/**
 	 * Send a request to the docker daemon.
 	 * @param request The request to send.
