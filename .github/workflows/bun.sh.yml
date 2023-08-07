@@ -1,0 +1,23 @@
+name: Bun.sh CI
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        bun-version: [0.7.1, 0.7.2]
+    steps:
+    - uses: actions/checkout@v3
+    - name: Use Bun.sh ${{ matrix.bun-version }}
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: ${{ matrix.bun-version }}
+    - run: bun install
+    - run: bun build ./src/main.ts --compile --outfile grader
+    # - run: bun run test # TODO: Add unit tests
