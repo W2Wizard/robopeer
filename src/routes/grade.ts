@@ -3,7 +3,7 @@
 // See README and LICENSE files for details.
 //=============================================================================
 
-import { log } from "@/main";
+import { Server, log } from "@/main";
 import { Elysia } from "elysia";
 import { accessSync, constants } from "fs";
 import Container from "@/docker/container";
@@ -27,6 +27,9 @@ enum ExitCode {
 	Timeout = 124, // NOTE(W2): Requires coreutils from GNU.
 	NotFound = 128,
 }
+
+/** A map of all the containers that are currently running. */
+export let containers: Map<string, Container> = new Map();
 
 //=============================================================================
 
@@ -66,10 +69,10 @@ export function constructContainer(
 			CpusetCpus: "0", // only use one core
 		},
 		Env: [
+			`TIMEOUT=${config.timeout}`,
 			`GIT_URL=${request.gitURL}`,
 			`GIT_BRANCH=${request.branch}`,
 			`GIT_COMMIT=${request.commit}`,
-			`TIMEOUT=${config.timeout}`,
 		],
 	};
 }
@@ -90,6 +93,9 @@ async function launchContainer(dir: string, project: string, request: Body) {
 	const container = await new Container(
 		constructContainer(project, request, config)
 	).launch();
+
+	if (!container.id) throw new Error("Container not launched.");
+	containers.set(container.id, container);
 
 	let response: Response;
 	const { exitCode, logs } = await container.wait();
@@ -113,6 +119,7 @@ async function launchContainer(dir: string, project: string, request: Body) {
 			throw new Error(`Unkown code: ${exitCode}: ${logs}`);
 	}
 	log.info("Container", container.id, "exited with:", exitCode);
+	containers.delete(container.id);
 	await container.remove();
 	return response;
 }
@@ -120,7 +127,7 @@ async function launchContainer(dir: string, project: string, request: Body) {
 //=============================================================================
 
 /** Register the routes for the /grade endpoint. */
-export default function register(server: Elysia) {
+export default function register(server: Server) {
 	log.debug("Registering /grade endpoint...");
 
 	server.post("/api/grade/git/:name", async ({ params, request }) => {

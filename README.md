@@ -33,6 +33,11 @@ To create a new reference project, use the following command:
 bun run new < project-name >
 ```
 
+### Dashboard
+
+To view the dashboard, just visit [localhost](http://localhost:8000/) in your browser.
+The dashboard merely displays statistics about the grading server itself and not much else.
+
 ### 🐳 Docker Setup
 
 > **Note**: The docker image hasn't been configured properly yet to make sure the code isn't actually doing something stupid (deleting files, cd, ...) atm it uses Kornshell just a basic simple attempt but there are no serious measures whatsoever.
