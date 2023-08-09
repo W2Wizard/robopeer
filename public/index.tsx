@@ -34,7 +34,7 @@ export default async function index(html: (value: string) => Response) {
 						</div>
 
 						{/* Kill */}
-						<button id="kill-button" hx-post="/api/stop">
+						<button hx-confirm="Are you sure?" id="kill-button" hx-post="/api/stop">
 							Kill Me
 						</button>
 					</div>
