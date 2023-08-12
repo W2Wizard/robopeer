@@ -4,7 +4,7 @@
 //=============================================================================
 
 import { sleep } from "bun";
-import { dlopen, FFIType, ptr } from "bun:ffi";
+import { dlopen, FFIType, ptr, toArrayBuffer } from "bun:ffi";
 import { describe, expect, it, beforeAll, afterAll } from "bun:test";
 
 /**
@@ -24,6 +24,10 @@ import { describe, expect, it, beforeAll, afterAll } from "bun:test";
 // TODO: Come up with a neater way to generate the type definitions?
 // NOTE(W2): Convert the static library to a shared library for dlopen to work.
 const { symbols, close } = dlopen("libft.so", {
+	ft_strdup: {
+		returns: FFIType.ptr,
+		args: [FFIType.ptr],
+	},
 	ft_strlen: {
 		returns: FFIType.i32,
 		args: [FFIType.ptr],
@@ -129,9 +133,24 @@ describe("makefile", () => {
 		const text = await makefile.text();
 		const requiredFlags = ["-Wall", "-Wextra", "-Werror"];
 
-		await sleep(1000);
-
 		expect(requiredFlags.every((flag) => text.includes(flag))).toBe(true);
+	});
+});
+
+// strdup
+//=============================================================================
+describe("strdup", () => {
+	it("duplicates a string", () => {
+		const sample = "Hello, world!";
+		const ptrSample = ptr(Buffer.from(`${sample}\0`, "utf8"));
+		const result = toArrayBuffer(symbols.ft_strdup(ptrSample), 0, sample.length);
+		const output = Buffer.from(result).toString("utf8");
+		expect(output).toBe(sample);
+	});
+
+	it("returns null if the string is empty", () => {
+		const emptyStr = Buffer.from(`\0`, "utf8");
+		expect(symbols.ft_strdup(ptr(emptyStr))).toBe(null);
 	});
 });
 
@@ -241,14 +260,12 @@ describe("strlen", () => {
 //=============================================================================
 describe("memset", () => {
   it("set characters to a value", () => {
-    const size = 10;
-    const value = 42;
+		const size = 42;
+    const value = 42; // *
     const buffer = Buffer.alloc(size);
-    const ptrBuffer = ptr(buffer);
-    symbols.ft_memset(ptrBuffer, value, size);
-    for (const byte of buffer) {
-      expect(byte).toBe(value);
-    }
+
+    symbols.ft_memset(ptr(buffer), value, size);
+		buffer.forEach((byte) => expect(byte).toBe(value));
   });
 });
 
@@ -258,11 +275,9 @@ describe("bzero", () => {
   it("zeroes out a buffer", () => {
     const size = 10;
     const buffer = Buffer.alloc(size, 42);
-    const ptrBuffer = ptr(buffer);
-    symbols.ft_bzero(ptrBuffer, size);
-    for (const byte of buffer) {
-      expect(byte).toBe(0);
-    }
+
+    symbols.ft_bzero(ptr(buffer), size);
+		buffer.forEach((byte) => expect(byte).toBe(0));
   });
 });
 
@@ -270,24 +285,22 @@ describe("bzero", () => {
 //=============================================================================
 describe("memcpy", () => {
   it("copies data from source to destination", () => {
-    const source = Buffer.from("Hello, world!\0", "utf8");
+		const source = Buffer.from("Hello, world!\0");
     const destination = Buffer.alloc(source.length);
-    const ptrSource = ptr(source);
-    const ptrDestination = ptr(destination);
-    symbols.ft_memcpy(ptrDestination, ptrSource, source.length);
+
+    symbols.ft_memcpy(ptr(destination), ptr(source), source.length);
     expect(destination.toString("utf8")).toBe(source.toString("utf8"));
   });
 });
 
 // ft_memmove
 //=============================================================================
-describe("ft_memmove", () => {
+describe("memmove", () => {
   it("copies overlapping data from source to destination", () => {
-    const source = Buffer.from("Hello, world!\0", "utf8");
+    const source = Buffer.from("Hello, world!\0");
     const destination = Buffer.alloc(source.length);
-    const ptrSource = ptr(source);
-    const ptrDestination = ptr(destination);
-    symbols.ft_memmove(ptrDestination, ptrSource, source.length);
+
+    symbols.ft_memmove(ptr(source), ptr(destination), source.length);
     expect(destination.toString("utf8")).toBe(source.toString("utf8"));
   });
 });

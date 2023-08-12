@@ -10,6 +10,7 @@ export type ModemCB = (res: Response) => void | Promise<void>;
 
 //=============================================================================
 
+/** A class that represents a connection to the docker daemon. */
 export default class Modem {
 	public endpoint = "http://localhost/";
 	private socket: Socket | null = null;
@@ -32,8 +33,7 @@ export default class Modem {
 
 			if (parser.isComplete) {
 				const response = parser.toResponse();
-				if (this.callback)
-					await this.callback(response);
+				if (this.callback) await this.callback(response);
 				parser.reset();
 			}
 		};
@@ -55,6 +55,13 @@ export default class Modem {
 				},
 			},
 		});
+	}
+
+	/** Disconnect from the docker daemon. */
+	public disconnect() {
+		if (!this.socket) throw new Error("Not connected to docker daemon.");
+		this.socket.end();
+		this.socket = null;
 	}
 
 	/**

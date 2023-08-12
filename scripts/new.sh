@@ -23,6 +23,8 @@ import { beforeAll, describe, expect, it } from "bun:test";
 
 //=============================================================================
 
+// NOTE(W2): Please read: https://bun.sh/docs/api/ffi before using ffi.
+
 /**
  * Run a command with arguments and return the output.
  * @param bin  The command to run.
@@ -58,10 +60,6 @@ describe("hello_world", () => {
 
 script_template='#!/bin/bash
 #==============================================================================
-if [ -z "$GIT_URL" ] || [ -z "$GIT_BRANCH" ] || [ -z "$GIT_COMMIT" ]; then
-    echo -e "GIT_URL, GIT_BRANCH and GIT_COMMIT must be set"
-    exit 1
-fi
 
 ID=$(xxd -l 16 -ps /dev/urandom | tr -d " \n")
 ProjectDIR="/tmp/$ID/project"
@@ -85,7 +83,7 @@ function gitCloneCommit() {
 # Build the project
 function build() {
     echo "[+] Building ..."
-    timeout 25s make -C $ProjectDIR -j4
+    timeout 1m make -C $ProjectDIR -j4
 
     # Other steps ...
 
@@ -108,8 +106,16 @@ run
 
 '
 
+config_template='
+{
+	"enabled": true,
+	"timeout": 25
+}
+'
+
 mkdir -p "$dir" && cd "$dir"
 echo "$script_template" > start.sh
 echo "$test_template" > index.test.ts
+echo "$config_template" > config.json
 echo "New project $1 created in $dir"
 chmod +x start.sh

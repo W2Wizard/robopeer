@@ -55,7 +55,9 @@ class Logger {
 			[LogLevel.FAIL]: "❌",
 		};
 
-		return `[${this.getCurrentTimestamp()}] [${level.toString()}] ${emojis[level]} : ${message}`;
+		return `[${this.getCurrentTimestamp()}] [${level.toString()}] ${
+			emojis[level]
+		} : ${message}`;
 	}
 
 	private writeToConsole(message: string): void {
@@ -112,7 +114,8 @@ class Logger {
 
 	/** Log a debug message to the console and the log file. */
 	public debug(...args: unknown[]): void {
-		this.write(LogLevel.DEBUG, ...args);
+		if (process.env.NODE_ENV !== "production")
+			this.write(LogLevel.DEBUG, ...args);
 	}
 }
 

@@ -3,12 +3,17 @@
 // See README and LICENSE files for details.
 //=============================================================================
 
-import { log } from "@/main";
+import { Server, log } from "@/main";
 import { Elysia } from "elysia";
 import { accessSync, constants } from "fs";
 import Container from "@/docker/container";
 
-interface RequestBody {
+interface Config {
+	enabled: boolean;
+	timeout: number;
+}
+
+interface Body {
 	gitURL: string;
 	branch: string;
 	commit: string;
@@ -18,9 +23,13 @@ enum ExitCode {
 	Success = 0,
 	MinorError = 1,
 	MajorError = 2,
+	Killed = 137, // SIGKILL
 	Timeout = 124, // NOTE(W2): Requires coreutils from GNU.
 	NotFound = 128,
 }
+
+/** A map of all the containers that are currently running. */
+export let containers: Map<string, Container> = new Map();
 
 //=============================================================================
 
@@ -30,7 +39,11 @@ enum ExitCode {
  * @param request The request to get the code from.
  * @returns The container object.
  */
-export function constructContainer(project: string, request: RequestBody) {
+export function constructContainer(
+	project: string,
+	request: Body,
+	config: Config
+) {
 	return {
 		Image: "w2wizard/runner",
 		NetworkDisabled: false,
@@ -40,8 +53,10 @@ export function constructContainer(project: string, request: RequestBody) {
 		OpenStdin: false,
 		Privileged: false,
 		Tty: false,
-		StopTimeout: 10, // ~10 seconds
-		StopSignal: "SIGTERM",
+		// Thank you docker for wasting my time.
+		// See: https://github.com/moby/moby/issues/1905
+		//StopTimeout: config.timeout,
+		//StopSignal: "SIGTERM",
 		HostConfig: {
 			AutoRemove: false,
 			Binds: [
@@ -54,6 +69,7 @@ export function constructContainer(project: string, request: RequestBody) {
 			CpusetCpus: "0", // only use one core
 		},
 		Env: [
+			`TIMEOUT=${config.timeout}`,
 			`GIT_URL=${request.gitURL}`,
 			`GIT_BRANCH=${request.branch}`,
 			`GIT_COMMIT=${request.commit}`,
@@ -67,23 +83,28 @@ export function constructContainer(project: string, request: RequestBody) {
  * @param request The incoming request.
  * @returns Response with the stdout or stderr of the container.
  */
-async function launchContainer(project: string, request: RequestBody) {
-	const container = new Container(constructContainer(project, request));
-	const launchErr = await container.launch();
-	if (launchErr) {
-		return new Response(launchErr.message, { status: 500 });
+async function launchContainer(dir: string, project: string, request: Body) {
+	const config = (await Bun.file(`${dir}/config.json`).json()) as Config;
+	if (!config.enabled) {
+		log.warn("Project disabled:", project);
+		return new Response("Project is currently disabled.", { status: 410 });
 	}
 
-	const [wait, error] = await container.wait();
-	if (error) return new Response(error.message, { status: 500 });
-	const { exitCode, logs } = wait!;
+	const container = await new Container(
+		constructContainer(project, request, config)
+	).launch();
+
+	if (!container.id) throw new Error("Container not launched.");
+	containers.set(container.id, container);
 
 	let response: Response;
+	const { exitCode, logs } = await container.wait();
 	switch (exitCode as ExitCode) {
 		case ExitCode.Success: {
 			response = new Response(logs, { status: 200 });
 			break;
 		}
+		case ExitCode.Killed:
 		case ExitCode.NotFound:
 		case ExitCode.MinorError:
 		case ExitCode.MajorError: {
@@ -98,6 +119,7 @@ async function launchContainer(project: string, request: RequestBody) {
 			throw new Error(`Unkown code: ${exitCode}: ${logs}`);
 	}
 	log.info("Container", container.id, "exited with:", exitCode);
+	containers.delete(container.id);
 	await container.remove();
 	return response;
 }
@@ -105,14 +127,22 @@ async function launchContainer(project: string, request: RequestBody) {
 //=============================================================================
 
 /** Register the routes for the /grade endpoint. */
-export default function register(server: Elysia) {
+export default function register(server: Server) {
 	log.debug("Registering /grade endpoint...");
 
 	server.post("/api/grade/git/:name", async ({ params, request }) => {
-		let body: RequestBody;
+		let body: Body;
 		const project = params.name;
-		const path = `./projects/${project}/index.test.ts`;
+		const dir = `./projects/${project}`;
+		const testFile = `${dir}/index.test.ts`;
 		log.info("Received request for:", project);
+
+		try {
+			accessSync(testFile, constants.F_OK | constants.R_OK);
+		} catch (error) {
+			log.warn("Project not found:", project);
+			return new Response("Project not found.", { status: 404 });
+		}
 
 		try {
 			body = await request.json();
@@ -126,14 +156,8 @@ export default function register(server: Elysia) {
 		}
 
 		try {
-			accessSync(path, constants.F_OK | constants.R_OK);
-		} catch (error) {
-			return new Response("Project not found.", { status: 404 });
-		}
-
-		try {
 			log.info("Running tests for:", project, "=>", body);
-			return await launchContainer(project, body);
+			return await launchContainer(dir, project, body);
 		} catch (exception) {
 			const error = exception as Error;
 			log.error(`Exception triggered: ${error.message}`);

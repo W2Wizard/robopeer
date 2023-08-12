@@ -13,7 +13,6 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     ksh \
     git \
-    sudo \
     cmake \
     coreutils \
     vim-common \

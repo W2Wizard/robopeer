@@ -1,9 +1,5 @@
 #!/bin/bash
 #==============================================================================
-if [ -z "$GIT_URL" ] || [ -z "$GIT_BRANCH" ] || [ -z "$GIT_COMMIT" ]; then
-    echo -e "GIT_URL, GIT_BRANCH and GIT_COMMIT must be set"
-    exit 1
-fi
 
 ID=$(xxd -l 16 -ps /dev/urandom | tr -d ' \n')
 ProjectDIR="/tmp/$ID/project"
@@ -27,7 +23,7 @@ function gitCloneCommit() {
 # Build the project
 function build() {
     echo "[+] Building ..."
-    timeout 25s make -C $ProjectDIR -j4
+    make -C $ProjectDIR -j4
 
     rm -rf $ObjectsDIR  && mkdir -p $ObjectsDIR
     find $ProjectDIR -name "Makefile" -exec cp {} $Home \;

@@ -9,6 +9,7 @@ import Modem, { ModemCB } from "./modem";
 
 //=============================================================================
 
+/** Contains all the docker api functions. */
 export namespace Docker {
 	/**
 	 * Parse the response buffer from the docker daemon.
@@ -44,11 +45,13 @@ export namespace Docker {
 			data += `[${date}] ${message}`;
 		}
 
-		return data
-			// Regex away all the color codes.
-			.replace(/\033\[[0-9;]*m|\[\d+m/g, '')
-			.replaceAll("(pass)", "(✅)")
-			.replaceAll("(fail)", "(❌)");
+		return (
+			data
+				// Regex away all the color codes.
+				.replace(/\033\[[0-9;]*m|\[\d+m/g, "")
+				.replaceAll("(pass)", "(✅)")
+				.replaceAll("(fail)", "(❌)")
+		);
 	}
 
 	/**
@@ -94,7 +97,6 @@ export namespace Docker {
 
 	/**
 	 * Start a container.
-	 *
 	 * @param id The id of the container to start.
 	 * @param cb A callback that will be called when the response is received.
 	 *
@@ -113,7 +115,6 @@ export namespace Docker {
 
 	/**
 	 * Stop a container.
-	 *
 	 * @param id The id of the container to stop.
 	 * @param cb A callback that will be called when the response is received.
 	 *
@@ -133,7 +134,6 @@ export namespace Docker {
 	/**
 	 * Wait for a container to finish.
 	 * Blocks until the container stops, then returns the exit code.
-	 *
 	 * @param id The id of the container to wait for.
 	 * @param cb A callback that will be called when the response is received.
 	 *
@@ -152,7 +152,6 @@ export namespace Docker {
 
 	/**
 	 * Get the logs of a container.
-	 *
 	 * @param id The id of the container to get the logs from.
 	 * @param cb A callback that will be called when the response is received.
 	 *
@@ -180,7 +179,6 @@ export namespace Docker {
 
 	/**
 	 * Remove a container.
-	 *
 	 * @param id The id of the container to remove.
 	 * @param cb A callback that will be called when the response is received.
 	 *
@@ -191,6 +189,24 @@ export namespace Docker {
 
 		const request = new RawRequest(`${modem.endpoint}/containers/${id}`, {
 			method: "DELETE",
+			headers: { Host: "localhost" },
+		});
+
+		modem.send(request, cb);
+	}
+
+	/**
+	 * Kill a container.
+	 * @param id The id of the container to kill.
+	 * @param cb A callback that will be called when the response is received.
+	 *
+	 * @see https://docs.docker.com/engine/api/v1.43/#operation/ContainerKill
+	 */
+	export function kill(modem: Modem, id: string, cb?: ModemCB) {
+		if (!modem.isConnected) throw new Error("Not connected to docker daemon.");
+
+		const request = new RawRequest(`${modem.endpoint}/containers/${id}/kill`, {
+			method: "POST",
 			headers: { Host: "localhost" },
 		});
 
