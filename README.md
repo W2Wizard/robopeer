@@ -10,8 +10,10 @@ RoboPeer is a **webserver** designed to grade your code in a safe environment. I
 
 The grading process involves comparing the output of the provided git repository (after compiling it) to a series of tests run with `bun:test`. RoboPeer then returns the results of these tests. With an appropriate status code.
 
+RoboPeer can also grade direct code submissions via `/api/grade/git` and `/api/grade/single` respectively.
+
 - `200` - All tests passed.
-- `400` - Compilation failed.
+- `400` - Tests failed.
 - `408` - Timeout for testing.
 - `500` - RoboPeer failed.
 
@@ -46,7 +48,11 @@ Make sure `Docker` is installed and running on your machine.
 Build the Docker image:
 
 ```bash
-docker build -t w2wizard/runner ./projects/
+#Git Image runner
+docker build -t w2wizard/git_runner ./docker/git
+
+#Single Image runner
+docker build -t w2wizard/single_runner ./docker/single
 ```
 ### 🧰 Running the Server
 Use the following command to run the server:
@@ -69,11 +75,23 @@ Webserver: http://localhost:8000/
 ### 📨 Sending a Grading Request
 The server by default run on http://localhost:8080. To send a request to it you can use the following curl command:
 ```bash
+# For git repositories
 curl -XPOST -H "Content-type: application/json" -d '{
     "branch": "master",
     "gitURL": "https://github.com/fbescodam/libft.git",
     "commit": "67dc80ae6a5d2c56a4305f5194672fe19130e705"
 }' 'http://localhost:8000/api/grade/git/libft'
+```
+
+```bash
+# For single files
+curl -XPOST -H "Content-type: application/json" -d '{
+    "code": "#include <stdio.h>\nint main(void) { printf(\"Hello World!\"); return 0; }",
+    "flags": "-Wall -Wextra -Werror",
+    "args": "a;b;c",
+    "timeout": 10,
+    "language": "c"
+}' 'http://localhost:8000/api/grade/single'
 ```
 
 `Output`: 

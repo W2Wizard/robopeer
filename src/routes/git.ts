@@ -3,10 +3,9 @@
 // See README and LICENSE files for details.
 //=============================================================================
 
-import { Server, log } from "@/main";
-import { Elysia } from "elysia";
 import { accessSync, constants } from "fs";
-import Container from "@/docker/container";
+import { Server, containers, log } from "@/main";
+import Container, { ExitCode } from "@/docker/container";
 
 interface Config {
 	enabled: boolean;
@@ -19,18 +18,6 @@ interface Body {
 	commit: string;
 }
 
-enum ExitCode {
-	Success = 0,
-	MinorError = 1,
-	MajorError = 2,
-	Killed = 137, // SIGKILL
-	Timeout = 124, // NOTE(W2): Requires coreutils from GNU.
-	NotFound = 128,
-}
-
-/** A map of all the containers that are currently running. */
-export let containers: Map<string, Container> = new Map();
-
 //=============================================================================
 
 /**
@@ -39,13 +26,9 @@ export let containers: Map<string, Container> = new Map();
  * @param request The request to get the code from.
  * @returns The container object.
  */
-export function constructContainer(
-	project: string,
-	request: Body,
-	config: Config
-) {
+export function payload(project: string, request: Body, config: Config) {
 	return {
-		Image: "w2wizard/runner",
+		Image: "w2wizard/git_runner",
 		NetworkDisabled: false,
 		AttachStdin: false,
 		AttachStdout: false,
@@ -91,7 +74,7 @@ async function launchContainer(dir: string, project: string, request: Body) {
 	}
 
 	const container = await new Container(
-		constructContainer(project, request, config)
+		payload(project, request, config)
 	).launch();
 
 	if (!container.id) throw new Error("Container not launched.");
@@ -115,8 +98,10 @@ async function launchContainer(dir: string, project: string, request: Body) {
 			response = new Response(logs, { status: 408 });
 			break;
 		}
+		case ExitCode.ScriptFail:
+			throw new Error(`Ooops! That's a buggy script:\n${logs}`);
 		default:
-			throw new Error(`Unkown code: ${exitCode}: ${logs}`);
+			throw new Error(`Unkown code: ${exitCode}:\n${logs}`);
 	}
 	log.info("Container", container.id, "exited with:", exitCode);
 	containers.delete(container.id);
@@ -126,9 +111,9 @@ async function launchContainer(dir: string, project: string, request: Body) {
 
 //=============================================================================
 
-/** Register the routes for the /grade endpoint. */
+/** Register the routes for the /git endpoint. */
 export default function register(server: Server) {
-	log.debug("Registering /grade endpoint...");
+	log.debug("Registering /api/grade endpoint");
 
 	server.post("/api/grade/git/:name", async ({ params, request }) => {
 		let body: Body;

@@ -5,6 +5,7 @@
 
 import { Socket } from "bun";
 import { RawRequest, ResponseParser } from "@/http";
+import { Docker } from "./api";
 
 export type ModemCB = (res: Response) => void | Promise<void>;
 

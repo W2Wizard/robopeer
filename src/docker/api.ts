@@ -55,6 +55,22 @@ export namespace Docker {
 	}
 
 	/**
+	 * Check if the docker daemon is running.
+	 * @returns `true` if the daemon is running, `false` otherwise.
+	 * @see https://docs.docker.com/engine/api/v1.43/#tag/System/operation/SystemPingHead
+	 */
+	export function ping(modem: Modem, cb?: ModemCB) {
+		const request = new RawRequest(`${modem.endpoint}/_ping`, {
+			method: "GET",
+			headers: {
+				Host: "localhost",
+			},
+		});
+
+		modem.send(request, cb);
+	}
+
+	/**
 	 * List all containers.
 	 * @returns A list of containers currently running as JSON.
 	 * @see https://docs.docker.com/engine/api/v1.43/#operation/ContainerList

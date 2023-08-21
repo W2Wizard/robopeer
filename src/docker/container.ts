@@ -8,6 +8,16 @@ import { Docker } from "./api";
 
 //=============================================================================
 
+export enum ExitCode {
+	Success = 0,
+	MinorError = 1,
+	MajorError = 2,
+	Killed = 137, // SIGKILL
+	Timeout = 124, // NOTE(W2): Requires coreutils from GNU.
+	ScriptFail = 127, // The script is buggy.
+	NotFound = 128,
+}
+
 /** A container to run docker commands in. */
 export default class Container {
 	public payload: any;
@@ -87,6 +97,22 @@ export default class Container {
 		const exitCode = await waitCon(this.modem, this.id);
 		const logs = await logsCon(this.modem, this.id);
 		return { exitCode, logs };
+	}
+
+	public async kill() {
+		if (!this.modem || !this.id) {
+			throw new Error("Container not launched.");
+		}
+
+		const kill = (modem: Modem, id: string) =>
+			new Promise<void>((resolve, reject) => {
+				Docker.kill(modem, id, async (res) => {
+					if (!res.ok) return reject(Error(await res.text()));
+					return resolve();
+				});
+			});
+
+		await kill(this.modem, this.id);
 	}
 
 	/** Remove the container. */
