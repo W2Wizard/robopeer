@@ -130,7 +130,7 @@ export default function register(server: Server) {
 		}
 
 		try {
-			body = await request.json();
+			body = await request.json() as Body;
 			if (!body.gitURL || !body.branch || !body.commit) {
 				log.warn("Missing parameters:", body);
 				return new Response("Missing parameters", { status: 400 });

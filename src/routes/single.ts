@@ -100,7 +100,7 @@ export default function register(server: Server) {
 		log.info("Received single code request");
 
 		try {
-			body = await request.json();
+			body = await request.json() as Body;
 			if (!body.language || !body.timeout) {
 				log.warn("Missing parameters:", body);
 				return new Response("Missing parameters", { status: 400 });

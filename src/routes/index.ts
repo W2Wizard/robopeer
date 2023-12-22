@@ -4,7 +4,6 @@
 //=============================================================================
 
 import Modem from "@/docker/modem";
-import index from "$/index";
 import { Server, log } from "@/main";
 import { Docker } from "@/docker/api";
 
@@ -31,7 +30,6 @@ async function getContainerCount() {
 /** Register the routes for the /stats endpoint. */
 export default function register(server: Server) {
 	log.debug("Registering /index endpoint...");
-	server.get("/", ({ html }) => index(html));
 	server.get("/api/count", async () => await getContainerCount());
 	server.post("/api/stop", () => {
 		log.info("Stopping server...");

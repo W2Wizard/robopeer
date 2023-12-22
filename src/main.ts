@@ -41,12 +41,7 @@ export const log = new Logger(`./logs`);
 //}
 
 log.info("Starting server...");
-const server = new Elysia().use(htmlPlugin()).use(
-	staticPlugin({
-		assets: "public/assets",
-		prefix: "assets",
-	})
-);
+const server = new Elysia();
 
 export let containers: Map<string, Container> = new Map();
 [registerGit, registerSingle, registerStats].forEach((route) => route(server));

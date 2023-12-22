@@ -3,7 +3,6 @@
 // See README and LICENSE files for details.
 //=============================================================================
 
-import index from "$/index";
 import Modem from "@/docker/modem";
 import { Server, log } from "@/main";
 import { Docker } from "@/docker/api";
@@ -34,7 +33,6 @@ export default function register(server: Server) {
 	log.debug("Registering /api/stop endpoint");
 	log.debug("Registering /index endpoint...");
 
-	server.get("/", ({ html }) => index(html));
 	server.get("/api/count", async () => await getContainerCount());
 	server.post("/api/stop", () => {
 		log.info("Stopping server...");
