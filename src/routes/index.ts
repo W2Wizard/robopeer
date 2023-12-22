@@ -10,7 +10,6 @@ import { Docker } from "@/docker/api";
 //=============================================================================
 
 async function getContainerCount() {
-	log.debug("getContainerCount()");
 	return await new Promise<string>(async (resolve, reject) => {
 		const modem = new Modem();
 		await modem.connect();
@@ -30,6 +29,7 @@ async function getContainerCount() {
 /** Register the routes for the /stats endpoint. */
 export default function register(server: Server) {
 	log.debug("Registering /index endpoint...");
+	server.get("/", async () => "Nothing to get here :)");
 	server.get("/api/count", async () => await getContainerCount());
 	server.post("/api/stop", () => {
 		log.info("Stopping server...");

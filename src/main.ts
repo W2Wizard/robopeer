@@ -6,10 +6,8 @@
 import Logger from "./logger";
 import { Elysia } from "elysia";
 import Modem from "./docker/modem";
-import htmlPlugin from "@elysiajs/html";
-import staticPlugin from "@elysiajs/static";
 import registerGit from "./routes/git";
-import registerStats from "./routes/stats";
+import registerStats from "./routes/index";
 import registerSingle from "./routes/single";
 import Container from "./docker/container";
 
@@ -29,25 +27,30 @@ async function isDockerRunning() {
 		console.error(error);
 		return false;
 	}
+	return true;
 }
 
-// Entry point
+// Entry
 //=============================================================================
 
 export const log = new Logger(`./logs`);
-//if (!await isDockerRunning()) {
-//	log.error("Docker is not running!");
-//	process.exit(1);
-//}
+if (!(await isDockerRunning())) {
+	log.error("Docker is not running!");
+	process.exit(1);
+} else {
+	log.info("Starting server...");
+	log.info("Docker is up and running!");
+}
 
-log.info("Starting server...");
 const server = new Elysia();
-
 export let containers: Map<string, Container> = new Map();
+
 [registerGit, registerSingle, registerStats].forEach((route) => route(server));
 server.listen(Number(Bun.env.PORT ?? 8000), ({ port }) => {
 	log.info(`Hosted: http://localhost:${port}/`);
 });
+
+//=============================================================================
 
 process.on("SIGINT", async () => {
 	log.info(`Killing all ${containers.size} containers`);
@@ -60,6 +63,7 @@ process.on("SIGINT", async () => {
 			log.error(`Failed to kill container ${id}: ${error}`);
 		}
 	}
+
 	log.info("Shutting down...");
 	server.stop();
 });

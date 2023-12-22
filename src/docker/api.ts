@@ -49,8 +49,8 @@ export namespace Docker {
 			data
 				// Regex away all the color codes.
 				.replace(/\033\[[0-9;]*m|\[\d+m/g, "")
-				.replaceAll("(pass)", "(✅)")
-				.replaceAll("(fail)", "(❌)")
+				.replaceAll("(pass)", "(✓)")
+				.replaceAll("(fail)", "(✗)")
 		);
 	}
 

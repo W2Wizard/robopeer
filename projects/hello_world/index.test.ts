@@ -1,4 +1,3 @@
-
 //=============================================================================
 // W2Wizard, Amsterdam @ 2018-2023
 // See README and LICENSE files for details.

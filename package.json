@@ -21,8 +21,6 @@
   "type": "module",
   "dependencies": {
     "@elysiajs/fn": "^0.6.1",
-    "@elysiajs/html": "^0.7.3",
-    "@elysiajs/static": "^0.7.1",
     "chalk": "^5.3.0",
     "elysia": "^0.7.30",
     "http-parser-js": "^0.5.8"

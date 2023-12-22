@@ -136,3 +136,4 @@ tmp
 *.a
 *.dylib
 *bun-build
+grader

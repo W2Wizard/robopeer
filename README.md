@@ -17,8 +17,6 @@ RoboPeer can also grade direct code submissions via `/api/grade/git` and `/api/g
 - `408` - Timeout for testing.
 - `500` - RoboPeer failed.
 
-> **Warning**: RoboPeer is currently a work in progress and is not yet suitable for production use.
-
 ## 🛠️ Installation
 Requires [Bun.sh](https://bun.sh) to install dependencies.
 
@@ -34,11 +32,6 @@ To create a new reference project, use the following command:
 ```bash
 bun run new < project-name >
 ```
-
-### Dashboard
-
-To view the dashboard, just visit [localhost](http://localhost:8000/) in your browser.
-The dashboard merely displays statistics about the grading server itself and not much else.
 
 ### 🐳 Docker Setup
 
@@ -109,4 +102,22 @@ curl -XPOST -H "Content-type: application/json" -d '{
 [03/08/2023 14:33:47] [INFO] 📝 : Received request for: libft
 [03/08/2023 14:33:47] [INFO] 📝 : Running tests for: libft => {"gitURL":"https://github.com/fbescodam/libft.git","branch":"master","commit":"67dc80ae6a5d2c56a4305f5194672fe19130e705"}
 [03/08/2023 14:33:47] [INFO] 📝 : Container 8c2de65dcd4f exited with: 1
+```
+
+## Logrotate
+In production, we recommend setting up a logrotate in the logs directory. Create a logrotate config in the /etc/logrotate.d folder.
+
+You can use or modify the configuration below:
+
+```
+/root/robopeer/logs/log.txt {
+    weekly
+    missingok
+    rotate 4
+    compress
+    delaycompress
+    shred
+    ifempty
+    create 644 root root
+}
 ```
