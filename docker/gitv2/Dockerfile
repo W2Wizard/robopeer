@@ -8,10 +8,9 @@
 #=============================================================================
 
 FROM oven/bun:latest
-WORKDIR /app
+WORKDIR /
 
 RUN apt-get update && apt-get install -y \
-    ksh \
     git \
     cmake \
     coreutils \
@@ -21,7 +20,12 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-RUN adduser --disabled-password --shell /bin/bash "runner"
-COPY entry.sh /usr/local/bin/entry.sh
+# Keep the container running
+COPY start.sh /usr/local/bin/init.sh
+RUN chmod 755 /usr/local/bin/init.sh
 
-ENTRYPOINT [ "entry.sh" ]
+RUN addgroup --gid 1337 nxtdmy
+RUN adduser --shell /bin/bash runner && adduser runner nxtdmy
+
+USER runner
+ENTRYPOINT [ "init.sh" ]

@@ -28,8 +28,8 @@ interface Body {
  */
 export function payload(project: string, request: Body, config: Config) {
 	return {
-		Image: "w2wizard/git_runner",
-		NetworkDisabled: false,
+		Image: "w2wizard/git",
+		NetworkDisabled: false, // Keep this false, build scripts may rely on this.
 		AttachStdin: false,
 		AttachStdout: false,
 		AttachStderr: false,
@@ -43,8 +43,7 @@ export function payload(project: string, request: Body, config: Config) {
 		HostConfig: {
 			AutoRemove: false,
 			Binds: [
-				// TODO: Set as read-only.
-				`${process.cwd()}/projects/${project}:/app`,
+				`${process.cwd()}/projects/${project}:/var/dev:ro`, // Set as read-only
 			],
 			Memory: 50 * 1024 * 1024, // ~50MB
 			MemorySwap: -1,
@@ -99,13 +98,13 @@ async function launchContainer(dir: string, project: string, request: Body) {
 			break;
 		}
 		case ExitCode.ScriptFail:
-			throw new Error(`Ooops! That's a buggy script:\n${logs}`);
+			throw new Error(`Ooops! That's a buggy script:\n${logs}\nPlease report this!`);
 		default:
 			throw new Error(`Unkown code: ${exitCode}:\n${logs}`);
 	}
 	log.info("Container", container.id, "exited with:", exitCode);
-	containers.delete(container.id);
-	await container.remove();
+	//containers.delete(container.id);
+	//await container.remove();
 	return response;
 }
 
