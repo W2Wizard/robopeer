@@ -1,25 +1,23 @@
 #!/bin/bash
-#ID=$(xxd -l 16 -ps /dev/urandom | tr -d ' \n')
-#ProjectDIR="/tmp/$ID/project"
-#Home="/home/bun/"
+#==============================================================================
 
-# Exported variables from container
-# ID = A unique identifier for the runner
-# TMP_DIR = A temporary directory for the runner
-# GIT_DIR = The directory where the repository is cloned
-# WRK_DIR = The directory where the tests are run
+# Exported variables from container:
+# - ID = A unique identifier for the runner
+# - TMP_DIR = A temporary directory for the runner
+# - GIT_DIR = The directory where the repository is cloned
+# - WRK_DIR = The directory where the tests are run
 
 OBJ_DIR="$TMP_DIR/obj"
 
-# Functions
 #==============================================================================
 
 # Build the project
 function build() {
-    echo "[+] HOME: $HOME"
-    echo "[+] GIT: $GIT_DIR"
-    echo "[+] OBJ: $OBJ_DIR"
-    echo "[+] WRK: $WRK_DIR"
+    #echo "[+] HOME: $HOME"
+    #echo "[+] GIT: $GIT_DIR"
+    #echo "[+] OBJ: $OBJ_DIR"
+    #echo "[+] WRK: $WRK_DIR"
+    echo "[+] ============================================================================"
     echo "[+] Building ..."
     make -C $GIT_DIR -j4
 
@@ -33,14 +31,11 @@ function build() {
 
 # Run the tests
 function run()  {
+    build
+    echo "[+] ============================================================================"
     echo "[+] Running tests ..."
-    cd $WRK_DIR
-    ls -laF
-    bun test
+    cd $WRK_DIR && ls -laF && bun test
 }
 
-# Main
-#==============================================================================
 set -e
-build
 run

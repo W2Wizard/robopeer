@@ -12,28 +12,26 @@ if [ -z "$GIT_URL" ] || [ -z "$GIT_BRANCH" ] || [ -z "$GIT_COMMIT" ]; then
     exit 1
 fi
 
+# Clone the repository
 mkdir -p $TMP_DIR
 echo "[+] Cloning $GIT_URL"
 git clone $GIT_URL $GIT_DIR -b $GIT_BRANCH --recurse-submodules --quiet
 
-echo "[+] Switching to $GIT_COMMIT"
+# Switch to the commit
+#TODO: Broken?
 cd $GIT_DIR
-#ls -laF
-
-echo "[+] Moving to"
-pwd
-git checkout $GIT_COMMIT --quiet
-cd - > /dev/null
+echo "[+] Switching to $GIT_COMMIT" && git checkout $GIT_COMMIT
 
 # Clean up the work directory if anything is there
 # Since the host is read-only, copy the unit test files
 rm -rf $WRK_DIR && mkdir -p $WRK_DIR
 cp /var/dev/index.test.ts $WRK_DIR
-ls -laF $WRK_DIR
+ls -laF $GIT_DIR
 
+echo "[+] ============================================================================"
 echo "[+] Timeout: $TIMEOUT seconds"
 timeout --kill-after=$TIMEOUT $TIMEOUT /bin/bash /var/dev/start.sh
-#tail -f /dev/null
+tail -f /dev/null
 
 exitCode=$?
 if [ $exitCode -ne 0 ]; then

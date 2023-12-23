@@ -4,8 +4,6 @@
 #=============================================================================
 # Docker image for running git based repositories with bun test framework.
 #=============================================================================
-# TODO: Setup a runner user with very limited rights.
-#=============================================================================
 
 FROM oven/bun:latest
 WORKDIR /
