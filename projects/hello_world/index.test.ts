@@ -1,3 +1,4 @@
+
 //=============================================================================
 // W2Wizard, Amsterdam @ 2018-2023
 // See README and LICENSE files for details.
@@ -6,6 +7,8 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 
 //=============================================================================
+
+// NOTE(W2): Please read: https://bun.sh/docs/api/ffi before using ffi.
 
 /**
  * Run a command with arguments and return the output.

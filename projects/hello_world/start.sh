@@ -1,46 +1,33 @@
 #!/bin/bash
 #==============================================================================
-ID=$(xxd -l 16 -ps /dev/urandom | tr -d " \n")
-ProjectDIR="/tmp/$ID/project"
-ObjectsDIR="/tmp/$ID/objects"
-Home="/home/runner/"
 
-# Functions
+# Exported variables from container:
+# - ID = A unique identifier for the runner
+# - TMP_DIR = A temporary directory for the runner
+# - GIT_DIR = The directory where the repository is cloned
+# - WRK_DIR = The directory where the tests are run
+
+OBJ_DIR="$TMP_DIR/obj"
+
 #==============================================================================
-
-# Fetch the project
-function gitCloneCommit() {
-    echo "[+] Cloning $GIT_URL"
-    git clone $GIT_URL $ProjectDIR -b $GIT_BRANCH --recurse-submodules --quiet
-    cd $ProjectDIR
-
-    echo "[+] Switching to $GIT_COMMIT"
-    git checkout $GIT_COMMIT --quiet
-    cd - > /dev/null
-}
 
 # Build the project
 function build() {
+    echo "[+] ============================================================================"
     echo "[+] Building ..."
-    make -C $ProjectDIR -j4
 
-    # Other steps ...
-
-    cp /app/index.test.ts $Home
+    # Build code ...
 }
 
 # Run the tests
 function run()  {
+    build
+    echo "[+] ============================================================================"
     echo "[+] Running tests ..."
-    su - runner -s /bin/rksh -c "bun test"
+    cd $WRK_DIR && ls -laF && bun test
 }
 
-# Main
-#==============================================================================
 set -e
-
-gitCloneCommit
-build
 run
 
 
