@@ -103,8 +103,8 @@ async function launchContainer(dir: string, project: string, request: Body) {
 			throw new Error(`Unkown code: ${exitCode}:\n${logs}`);
 	}
 	log.info("Container", container.id, "exited with:", exitCode);
-	//containers.delete(container.id);
-	//await container.remove();
+	containers.delete(container.id);
+	await container.remove();
 	return response;
 }
 

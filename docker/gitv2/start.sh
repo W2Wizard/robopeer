@@ -31,7 +31,7 @@ ls -laF $GIT_DIR
 echo "[+] ============================================================================"
 echo "[+] Timeout: $TIMEOUT seconds"
 timeout --kill-after=$TIMEOUT $TIMEOUT /bin/bash /var/dev/start.sh
-tail -f /dev/null
+#tail -f /dev/null # DEBUG
 
 exitCode=$?
 if [ $exitCode -ne 0 ]; then

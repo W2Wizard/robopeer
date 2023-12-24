@@ -13,10 +13,6 @@ OBJ_DIR="$TMP_DIR/obj"
 
 # Build the project
 function build() {
-    #echo "[+] HOME: $HOME"
-    #echo "[+] GIT: $GIT_DIR"
-    #echo "[+] OBJ: $OBJ_DIR"
-    #echo "[+] WRK: $WRK_DIR"
     echo "[+] ============================================================================"
     echo "[+] Building ..."
     make -C $GIT_DIR -j4
