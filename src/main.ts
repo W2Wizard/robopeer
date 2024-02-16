@@ -3,68 +3,67 @@
 // See README and LICENSE files for details.
 //=============================================================================
 
-import Logger from "./logger";
-import { Elysia } from "elysia";
-import Modem from "./docker/modem";
-import htmlPlugin from "@elysiajs/html";
-import staticPlugin from "@elysiajs/static";
-import registerGit from "./routes/git";
-import registerStats from "./routes/stats";
-import registerSingle from "./routes/single";
-import Container from "./docker/container";
-
-export type Server = typeof server;
+import { $ } from "bun";
+import execGit from "./git";
+import { execFile } from "./file";
+import type { Body } from "./types/general";
 
 //=============================================================================
 
-if (import.meta.main !== (import.meta.path === Bun.main))
-	throw new Error("This module cannot be imported.");
-
-async function isDockerRunning() {
-	const modem = new Modem();
-	try {
-		await modem.connect();
-		modem.disconnect();
-	} catch (error) {
-		console.error(error);
-		return false;
+/** Create a new testing instance */
+async function POST(request: Request) {
+	console.log("POST", request.url);
+	const body = await request.json() as Body;
+	switch (body.type) {
+		case "file":
+			return await execFile(request, body);
+		case "git":
+			return await execGit(request, body);
+		default:
+			return new Response("Request type not supported", { status: 404 });
 	}
 }
 
-// Entry point
+/** Provide a list of available projects */
+async function GET(request: Request) {
+	const projects = await $`ls projects`.text();
+	return new Response(projects, {
+		status: 204,
+		headers: {
+			"Content-Type": "text/plain"
+		}
+	});
+}
+
+/** Provide a list of available methods */
+function OPTIONS(_: Request) {
+	return new Response(null, {
+		status: 204,
+		headers: {
+			"Allow": "GET, POST, OPTIONS",
+		},
+	});
+}
+
 //=============================================================================
 
-export const log = new Logger(`./logs`);
-//if (!await isDockerRunning()) {
-//	log.error("Docker is not running!");
-//	process.exit(1);
-//}
-
-log.info("Starting server...");
-const server = new Elysia().use(htmlPlugin()).use(
-	staticPlugin({
-		assets: "public/assets",
-		prefix: "assets",
-	})
-);
-
-export let containers: Map<string, Container> = new Map();
-[registerGit, registerSingle, registerStats].forEach((route) => route(server));
-server.listen(Number(Bun.env.PORT ?? 8000), ({ port }) => {
-	log.info(`Hosted: http://localhost:${port}/`);
-});
-
-process.on("SIGINT", async () => {
-	log.info(`Killing all ${containers.size} containers`);
-
-	for (const [id, container] of containers) {
-		log.debug(`Killing container ${id}`);
-		try {
-			await container.kill();
-		} catch (error) {
-			log.error(`Failed to kill container ${id}: ${error}`);
+console.log("Starting server...");
+Bun.serve({
+	port: process.env.PORT || 9000,
+	development: true,
+	async fetch(req: Request) {
+		switch (req.method) {
+			case "POST": {
+				try {
+					return POST(req);
+				} catch {
+					return new Response("Invalid request", { status: 400 });
+				}
+			}
+			case "GET": return GET(req);
+			case "OPTIONS": return OPTIONS(req);
+			default:
+				return new Response("Unsupported method", { status: 405 });
 		}
-	}
-	log.info("Shutting down...");
-	server.stop();
+	},
 });
