@@ -19,5 +19,5 @@ jobs:
       with:
         bun-version: ${{ matrix.bun-version }}
     - run: bun install
-    - run: bun build ./src/main.ts --compile --outfile grader
+    - run: bun run compile
     # - run: bun run test # TODO: Add unit tests
