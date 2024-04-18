@@ -6,8 +6,9 @@
 import Container from './docker/container'
 import Git from './git'
 import { AutoRouter, json, type IRequest, type ResponseHandler, error, status, StatusError } from 'itty-router'
-import type { GitBody } from './types'
+import type { FileBody, GitBody } from './types'
 import { $ } from 'bun'
+import Single from './single'
 
 // Middleware
 // ============================================================================
@@ -51,8 +52,21 @@ router.post('/evaluate/git/:project', async (req) => {
 	return await Git.run(req.params.project, body)
 })
 
-router.post('/evaluate/code', async (request) => {
+router.post('/evaluate/code', async (req) => {
+	let body: FileBody = await req.json()
+		.catch(() => { throw new StatusError(400, 'Invalid JSON body.') })
+		.then((data) => data);
 
+	if (
+		!body.data.args ||
+		!body.data.content ||
+		!body.data.flags ||
+		!body.data.lang
+	) {
+		throw new StatusError(400, 'Invalid JSON body.')
+	}
+
+	return await Single.run(body)
 })
 
 console.log(`Running: https://localhost:${Bun.env.PORT ?? 8080}`);
