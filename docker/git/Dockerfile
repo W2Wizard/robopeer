@@ -1,17 +1,14 @@
 #=============================================================================
-# W2Wizard, Amsterdam @ 2018-2023
+# W2Wizard, Amsterdam @ 2024
 # See README and LICENSE files for details.
 #=============================================================================
 # Docker image for running git based repositories with bun test framework.
 #=============================================================================
-# TODO: Setup a runner user with very limited rights.
-#=============================================================================
 
 FROM oven/bun:latest
-WORKDIR /app
+WORKDIR /
 
 RUN apt-get update && apt-get install -y \
-    ksh \
     git \
     cmake \
     coreutils \
@@ -21,7 +18,12 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-RUN adduser --disabled-password --shell /bin/bash "runner"
+# Keep the container running
+COPY start.sh /usr/local/bin/init.sh
+RUN chmod 755 /usr/local/bin/init.sh
 
-COPY entry.sh /usr/local/bin/entry.sh
-ENTRYPOINT [ "entry.sh" ]
+RUN addgroup --gid 1337 nxtdmy
+RUN adduser --shell /bin/bash runner && adduser runner nxtdmy
+
+USER runner
+ENTRYPOINT [ "init.sh" ]

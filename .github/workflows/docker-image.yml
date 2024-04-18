@@ -12,6 +12,6 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Build Git Runner
-      run: docker build ./docker/git/ --tag w2wizard/git_runner:$(date +%s)
-    - name: Build Single Runner
-      run: docker build ./docker/single/ --tag w2wizard/single_runner:$(date +%s)
+      run: docker build ./docker/git/ --tag w2wizard/git:$(date +%s)
+    # - name: Build Single Runner
+    #   run: docker build ./docker/single/ --tag w2wizard/code:$(date +%s)

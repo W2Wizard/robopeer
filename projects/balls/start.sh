@@ -1,5 +1,6 @@
 #!/bin/bash
 #==============================================================================
+
 ID=$(xxd -l 16 -ps /dev/urandom | tr -d " \n")
 ProjectDIR="/tmp/$ID/project"
 ObjectsDIR="/tmp/$ID/objects"
@@ -22,7 +23,7 @@ function gitCloneCommit() {
 # Build the project
 function build() {
     echo "[+] Building ..."
-    make -C $ProjectDIR -j4
+    timeout 1m make -C $ProjectDIR -j4
 
     # Other steps ...
 
