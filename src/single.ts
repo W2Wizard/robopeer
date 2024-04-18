@@ -66,9 +66,17 @@ export namespace Single {
 
 		// Handle container exit codes.
 		switch (await container.wait()) {
-			case 124:
+			case 1:
+			case 2:
+			case 127:
+				return new Response(response.body, {
+					status: 422
+				});
+			case 128:
+				throw new StatusError(500, "Robopeer is buggy. Please report this issue.");
+			case 124: // SIGALRM
 				throw new StatusError(408, "Program timed out.");
-			case 137:
+			case 137: // SIGKILL
 				throw new StatusError(422, "Program killed due to memory limit. Are you doing something nasty?");
 		}
 		return response;
