@@ -3,59 +3,90 @@
 // See README and LICENSE files for details.
 //=============================================================================
 
-import Modem from "./modem";
-import { Docker } from "./api";
+import { docker } from "./api";
+import type { components, operations } from "./dockerapi";
+
+// export enum ExitCode {
+// 	Success = 0,
+// 	MinorError = 1,
+// 	MajorError = 2,
+// 	Killed = 137, // SIGKILL
+// 	Timeout = 124, // NOTE(W2): Requires coreutils from GNU.
+// 	NotFound = 128,
+// }
+
+export type ContainerPayload = operations["ContainerCreate"]["requestBody"]["content"]["application/json"];
 
 //=============================================================================
 
-export enum ExitCode {
-	Success = 0,
-	MinorError = 1,
-	MajorError = 2,
-	Killed = 137, // SIGKILL
-	Timeout = 124, // NOTE(W2): Requires coreutils from GNU.
-	ScriptFail = 127, // The script is buggy.
-	NotFound = 128,
-}
-
 /** A container to run docker commands in. */
 export default class Container {
-	public payload: any;
 	public id: string | null = null;
-	private modem: Modem | null = null;
+	private payload: ContainerPayload;
 
-	constructor(payload: any) {
+	constructor(payload: ContainerPayload) {
 		this.payload = payload;
 	}
 
 	//= Public =//
 
-	/** Launch the container. */
-	public async launch() {
-		this.modem = new Modem();
-		await this.modem.connect();
+	/** Create the container. */
+	public async create() {
+		const { response, data, error } = await docker.POST("/containers/create", {
+			body: this.payload,
+		});
 
-		const create = (modem: Modem, container: Container) =>
-			new Promise<string>((resolve, reject) => {
-				Docker.create(modem, container, async (res) => {
-					if (!res.ok) return reject(Error(await res.text()));
+		if (error) {
+			throw new Error(error.message);
+		} else if (!response.ok) {
+			throw new Error(response.statusText);
+		}
 
-					const { Id } = (await res.json()) as { Id: string };
-					return resolve(Id);
-				});
-			});
+		this.id = data.Id;
+	}
 
-		const start = (modem: Modem, id: string) =>
-			new Promise<string>((resolve, reject) => {
-				Docker.start(modem, id, async (res) => {
-					if (!res.ok) return reject(Error(await res.text()));
-					return resolve(id);
-				});
-			});
+	/** Start the container. */
+	public async start() {
+		if (!this.id) {
+			await this.create();
+		}
 
-		this.id = await create(this.modem, this);
-		await start(this.modem, this.id);
-		return this;
+		const { response, error } = await docker.POST("/containers/{id}/start", {
+			params: { path: { id: this.id! } },
+		});
+
+		if (error) {
+			throw new Error(error.message);
+		} else if (!response.ok) {
+			throw new Error(response.statusText);
+		}
+	}
+
+	/** Get the logs of the container. */
+	public async logs() {
+		if (!this.id) {
+			throw new Error("Container not created.");
+		}
+
+		const { response, data, error } = await docker.GET("/containers/{id}/logs", {
+			parseAs: "arrayBuffer",
+			params: {
+				query: {
+					stdout: true,
+					stderr: true,
+					timestamps: true,
+				},
+				path: { id: this.id }
+			},
+		});
+
+		if (error) {
+			throw new Error(error.message);
+		} else if (!response.ok) {
+			throw new Error(response.statusText);
+		}
+
+		return data;
 	}
 
 	/**
@@ -64,70 +95,54 @@ export default class Container {
 	 * @returns The logs and exit code of the container.
 	 */
 	public async wait() {
-		if (!this.modem || !this.id) {
-			throw new Error("Container not launched.");
+		if (!this.id) {
+			throw new Error("Container not created.");
 		}
 
-		// Promise for the exit code.
-		const waitCon = (modem: Modem, id: string) =>
-			new Promise<number>((resolve, reject) => {
-				Docker.wait(modem, id, async (res) => {
-					if (!res.ok) return reject(Error(await res.text()));
+		const { response, data, error } = await docker.POST("/containers/{id}/wait", {
+			params: { path: { id: this.id } },
+		});
 
-					const { StatusCode } = (await res.json()) as any;
-					return resolve(StatusCode);
-				});
-			});
+		if (error) {
+			throw new Error(error.message);
+		} else if (!response.ok) {
+			throw new Error(response.statusText);
+		}
 
-		// Promise for the logs.
-		const logsCon = (modem: Modem, id: string) =>
-			new Promise<string>((resolve, reject) => {
-				const params = new URLSearchParams({
-					stdout: "true",
-					stderr: "true",
-					timestamps: "true",
-				});
-
-				Docker.getLogs(modem, id, params, async (res) => {
-					if (!res.ok) return reject(Error(await res.text()));
-					return resolve(Docker.parseLogBuffer(await res.arrayBuffer()));
-				});
-			});
-
-		const exitCode = await waitCon(this.modem, this.id);
-		const logs = await logsCon(this.modem, this.id);
-		return { exitCode, logs };
+		return data.StatusCode;
 	}
 
+	/** Kill the container. */
 	public async kill() {
-		if (!this.modem || !this.id) {
-			throw new Error("Container not launched.");
+		if (!this.id) {
+			throw new Error("Container not created.");
 		}
 
-		const kill = (modem: Modem, id: string) =>
-			new Promise<void>((resolve, reject) => {
-				Docker.kill(modem, id, async (res) => {
-					if (!res.ok) return reject(Error(await res.text()));
-					return resolve();
-				});
-			});
+		const { response, error } = await docker.POST("/containers/{id}/kill", {
+			params: { path: { id: this.id } },
+		});
 
-		await kill(this.modem, this.id);
+		if (error) {
+			throw new Error(error.message);
+		} else if (!response.ok) {
+			throw new Error(response.statusText);
+		}
 	}
 
 	/** Remove the container. */
 	public async remove() {
-		if (!this.modem) throw new Error("Container not launched.");
+		if (!this.id) {
+			throw new Error("Container not created.");
+		}
 
-		const remove = (modem: Modem, id: string) =>
-			new Promise<void>((resolve, reject) => {
-				Docker.remove(modem, id, async (res) => {
-					if (!res.ok) return reject(Error(await res.text()));
-					return resolve();
-				});
-			});
+		const { response, error } = await docker.DELETE("/containers/{id}", {
+			params: { path: { id: this.id } },
+		});
 
-		await remove(this.modem, this.id!);
-		this.modem.disconnect();
+		if (error) {
+			throw new Error(error.message);
+		} else if (!response.ok) {
+			throw new Error(response.statusText);
+		}
 	}
 }

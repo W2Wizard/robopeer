@@ -12,7 +12,6 @@ if [ -d "$dir" ]; then
     exit 1
 fi
 
-
 test_template='
 //=============================================================================
 // W2Wizard, Amsterdam @ 2018-2023
@@ -105,17 +104,8 @@ build
 run
 
 '
-
-config_template='
-{
-	"enabled": true,
-	"timeout": 25
-}
-'
-
 mkdir -p "$dir" && cd "$dir"
 echo "$script_template" > start.sh
 echo "$test_template" > index.test.ts
-echo "$config_template" > config.json
 echo "New project $1 created in $dir"
 chmod +x start.sh
