@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        bun-version: [0.7.1, 0.7.2]
+        bun-version: [1.1.4]
     steps:
     - uses: actions/checkout@v3
     - name: Use Bun.sh ${{ matrix.bun-version }}
