@@ -17,6 +17,7 @@ RoboPeer can also grade direct code submissions via `/evaluate/git`.
 - `200` - All tests passed.
 - `400` - Tests failed.
 - `408` - Timeout for testing.
+- `422` - Skill issue (bad code)
 - `500` - RoboPeer failed.
 
 > **Warning**: RoboPeer is currently a work in progress and is not yet suitable for production use.
@@ -59,27 +60,37 @@ Build the Docker image:
 
 ```bash
 #Git Image runner
-docker build -t w2wizard/git_runner ./docker/git
-
+docker build -t w2wizard/git ./docker/git
 ```
+
+```bash
+#Single Code runner
+docker build -t w2wizard/singlke ./docker/single
+```
+
 ### 📨 Sending a Grading Request
 The server by default run on http://localhost:8080. To send a request to it you can use the following curl command:
 ```bash
 # For git repositories
 curl -XPOST -H "Content-type: application/json" -d '{
-    "branch": "master",
-    "gitURL": "https://github.com/fbescodam/libft.git",
-    "commit": "67dc80ae6a5d2c56a4305f5194672fe19130e705"
+    "data": {
+        "repo": "https://github.com/fbescodam/libft.git",
+        "branch": "master",
+        "commit": "67dc80a"
+    }
 }' 'http://localhost:8000/api/grade/git/libft'
 ```
 
 ```bash
 # For single files
 curl -XPOST -H "Content-type: application/json" -d '{
-    "code": "#include <stdio.h>\nint main(void) { printf(\"Hello World!\"); return 0; }",
-    "flags": "-Wall -Wextra -Werror",
-    "args": "a;b;c",
-    "timeout": 10,
-    "language": "c"
+    "data": {
+        "args": [],
+        "content": "int main() { while(1) { fork() } }",
+        "flags": [
+            "-Wno-implicit-function-declaration"
+        ],
+        "lang": "c"
+    }
 }' 'http://localhost:8000/api/grade/single'
 ```
