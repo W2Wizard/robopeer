@@ -7,6 +7,7 @@ import type { FileBody } from "./types";
 import Container from "./docker/container";
 import { parseLogBuffer } from "./docker/api";
 import type { ContainerPayload } from "./docker/container";
+import { StatusError } from "itty-router";
 
 // ============================================================================
 
@@ -63,7 +64,13 @@ export namespace Single {
 			}
 		)
 
-		await container.wait();
+		// Handle container exit codes.
+		switch (await container.wait()) {
+			case 124:
+				throw new StatusError(408, "Program timed out.");
+			case 137:
+				throw new StatusError(422, "Program killed due to memory limit. Are you doing something nasty?");
+		}
 		return response;
 	}
 }
