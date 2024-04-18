@@ -78,7 +78,7 @@ curl -XPOST -H "Content-type: application/json" -d '{
         "branch": "master",
         "commit": "67dc80a"
     }
-}' 'http://localhost:8000/api/grade/git/libft'
+}' 'http://localhost:3001/evaluate/git/libc'
 ```
 
 ```bash
@@ -92,5 +92,5 @@ curl -XPOST -H "Content-type: application/json" -d '{
         ],
         "lang": "c"
     }
-}' 'http://localhost:8000/api/grade/single'
+}' 'http://localhost:3001/evaluate/code'
 ```
