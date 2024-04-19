@@ -19,8 +19,6 @@ RoboPeer can also grade direct code submissions via `/evaluate/git`.
 - `422` - Skill issue (bad code)
 - `500` - RoboPeer failed.
 
-> **Warning**: RoboPeer is currently a work in progress and is not yet suitable for production use.
-
 ## 🛠️ Installation
 Requires [Bun.sh](https://bun.sh) to install dependencies.
 
@@ -51,8 +49,6 @@ bun run new < project-name >
 ```
 
 ### 🐳 Docker Setup
-
-> **Note**: The docker image hasn't been configured properly yet to make sure the code isn't actually doing something stupid (deleting files, cd, ...) atm it uses Kornshell just a basic simple attempt but there are no serious measures whatsoever.
 
 Make sure `Docker` is installed and running on your machine.
 Build the Docker image:
