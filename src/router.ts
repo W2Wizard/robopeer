@@ -28,14 +28,6 @@ const router = AutoRouter({
 	catch: error,
 })
 
-// router.get('/', () => ({ message: 'Hello, from itty-router v5.' }))
-// router.get('/hello', async () => {
-// 	const { response, data, error } = await docker.GET("/containers/json")
-// 	if (error) throw new Error(error.message)
-
-// 	return data
-// })
-
 router.post('/evaluate/git/:project', async (req) => {
 	let body: GitBody = await req.json()
 		.catch(() => { throw new StatusError(400, 'Invalid JSON body.') })
