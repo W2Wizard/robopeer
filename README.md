@@ -15,7 +15,6 @@ The grading process involves comparing the output of the provided git repository
 RoboPeer can also grade direct code submissions via `/evaluate/git`.
 
 - `200` - All tests passed.
-- `400` - Tests failed.
 - `408` - Timeout for testing.
 - `422` - Skill issue (bad code)
 - `500` - RoboPeer failed.
