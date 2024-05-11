@@ -5,7 +5,7 @@ set -e
 ID=$(xxd -l 16 -ps /dev/urandom | tr -d " \n")
 Dir="/tmp/$ID"
 File="$dir/user.c"
-Home="/home/runner/"
+Home="/home/bun/"
 
 # Build
 #==============================================================================
@@ -24,4 +24,4 @@ IFS=';' read -ra ARGS <<< "$CODE_ARGS"
 #==============================================================================
 
 echo "[+] Running file..."
-su - runner -s /bin/bash -c "pwd; ls -l; ./a.out ${ARGS[@]}"
+su - bun -s /bin/bash -c "pwd; ls -l; ./a.out ${ARGS[@]}"

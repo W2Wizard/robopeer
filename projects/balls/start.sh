@@ -4,7 +4,7 @@
 ID=$(xxd -l 16 -ps /dev/urandom | tr -d " \n")
 ProjectDIR="/tmp/$ID/project"
 ObjectsDIR="/tmp/$ID/objects"
-Home="/home/runner/"
+Home="/home/bun/"
 
 # Functions
 #==============================================================================

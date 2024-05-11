@@ -15,8 +15,10 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-RUN useradd runner --shell /bin/bash --create-home
 
-COPY start.sh .
-COPY entry.sh /usr/local/bin/entry.sh
-ENTRYPOINT [ "entry.sh" ]
+COPY ./start.sh .
+COPY ./entry.sh /usr/local/bin/entry.sh
+RUN chmod +x /usr/local/bin/entry.sh
+
+#USER bun
+ENTRYPOINT [ "/usr/local/bin/entry.sh" ]

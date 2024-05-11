@@ -22,8 +22,8 @@ RUN apt-get update && apt-get install -y \
 COPY start.sh /usr/local/bin/init.sh
 RUN chmod 755 /usr/local/bin/init.sh
 
-RUN addgroup --gid 1337 nxtdmy
-RUN adduser --shell /bin/bash runner && adduser runner nxtdmy
+#RUN addgroup --gid 1337 nxtdmy
+#RUN adduser --shell /bin/bash runner && adduser runner nxtdmy
 
-USER runner
+USER bun
 ENTRYPOINT [ "init.sh" ]

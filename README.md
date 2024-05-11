@@ -73,11 +73,13 @@ curl -XPOST -H "Content-type: application/json" -d '{
         "branch": "master",
         "commit": "67dc80a"
     }
-}' 'http://localhost:3001/evaluate/git/libc'
+}' 'http://localhost:3001/evaluate/git/lib'
 ```
 
 ```bash
 # For single files
+# Note: This example will not work as the code is invalid
+# Fork bombs won't work on the server
 curl -XPOST -H "Content-type: application/json" -d '{
     "data": {
         "args": [],
