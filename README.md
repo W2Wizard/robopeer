@@ -60,7 +60,7 @@ docker build -t w2wizard/git ./docker/git
 
 ```bash
 #Single Code runner
-docker build -t w2wizard/singlke ./docker/single
+docker build -t w2wizard/single ./docker/single
 ```
 
 ### 📨 Sending a Grading Request
