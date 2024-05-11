@@ -3,7 +3,7 @@
   "module": "main.ts",
   "type": "module",
   "scripts": {
-    "new": "/bin/bash ./scripts/new.sh",
+    "new": "bun --bun run ./scripts/new.ts",
     "dev": "bun --bun run ./src/main.ts",
     "api-get": "bun --bun run ./scripts/openapi.ts",
     "build": "bun --bun build ./src/main.ts --outfile ./build/robopeer.js",

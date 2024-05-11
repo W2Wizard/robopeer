@@ -1,23 +1,19 @@
-#!/bin/bash
-#===============================================================================
-# Set up a new project directory with a basic directory structure and files.
+// ============================================================================
+// Copyright (C) 2024 W2Wizard
+// See README in the root of the project for license details.
+// ============================================================================
 
-dir="./projects/$1"
-if [ -z "$1" ]; then
-    echo "Usage: new.sh <project_name>"
-    exit 1
-fi
-if [ -d "$dir" ]; then
-    echo "Project $1 already exists in $dir"
-    exit 1
-fi
+import { $ } from "bun";
 
-test_template='
+// ============================================================================
+
+const test_template=`
 //=============================================================================
 // W2Wizard, Amsterdam @ 2018-2023
 // See README and LICENSE files for details.
 //=============================================================================
 
+import { $ } from "bun";
 import { beforeAll, describe, expect, it } from "bun:test";
 
 //=============================================================================
@@ -52,12 +48,12 @@ beforeAll(() => {
 describe("hello_world", () => {
 	it("output equals", () => {
 		const output = runWith("/bin/echo", ["Hello, world!"]);
-		expect(output).toBe("Hello, world!\n");
+		expect(output).toBe("Hello, world!\\n");
 	});
 });
-'
+`
 
-script_template='#!/bin/bash
+const script_template=`#!/bin/bash
 #==============================================================================
 
 ID=$(xxd -l 16 -ps /dev/urandom | tr -d " \n")
@@ -102,10 +98,28 @@ set -e
 gitCloneCommit
 build
 run
+`
 
-'
-mkdir -p "$dir" && cd "$dir"
-echo "$script_template" > start.sh
-echo "$test_template" > index.test.ts
-echo "New project $1 created in $dir"
-chmod +x start.sh
+// Check if the project name is provided.
+if (process.argv.length < 3) {
+	console.error("Usage: new <project_name>");
+	process.exit(1);
+}
+
+const project = process.argv[2];
+if (project.includes("/")) {
+	console.error("Invalid project name.");
+	process.exit(1);
+}
+
+const { exitCode, stderr } = await $`mkdir -p ./projects/${project}`;
+if (exitCode !== 0) {
+	console.error("Unable to create project directory.");
+	console.error("Reason", stderr);
+	process.exit(1);
+}
+
+await $`echo "${script_template}" > ./projects/${project}/start.sh`;
+await $`echo "${test_template}" > ./projects/${project}/index.test.ts`;
+await $`chmod +x ./projects/${project}/start.sh`
+console.log("Project created successfully.");
