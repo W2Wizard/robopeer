@@ -15,8 +15,6 @@ import { describe, expect, it, beforeAll, afterAll } from "bun:test";
  *
  * Might be useful for code execution of C files directly:
  * @see https://github.com/TinyCC/tinycc
- *
- * TODO: What happens when you segfault in a function?
  */
 //=============================================================================
 
@@ -115,9 +113,11 @@ const { symbols, close } = dlopen("libft.so", {
 
 afterAll(close);
 beforeAll(() => {
-	["SIGINT", "SIGTERM", "SIGHUP"].forEach((signal) => {
+	// Signal for segfault is:
+	["SIGINT", "SIGTERM", "SIGHUP", "SIGSEGV"].forEach((signal) => {
 		process.on(signal, () => {
 			close();
+			console.error(`Signal ${signal} received.`);
 			throw new Error(`Signal ${signal} received.`);
 		});
 	});
